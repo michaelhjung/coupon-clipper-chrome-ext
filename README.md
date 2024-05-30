@@ -1,0 +1,1 @@
+# coupons-clipper-chrome-ext
