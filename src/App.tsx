@@ -1,24 +1,36 @@
+import { useState } from "react";
 import "./App.css";
 import couponClipperLogo from "/imgs/logo.jpg";
 
 function App() {
+  const [showInstructions, setShowInstructions] = useState(false);
+
   const executeScriptInActiveTab = async (func: () => void) => {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
-      if (tab?.id) {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func,
-        });
-      } else {
-        console.error("No active tab found.");
+
+      if (!tab?.id || !tab?.url || isAllowedDomain(tab.url)) {
+        alert(
+          "Sorry, this coupon clipper is currently limited for use at safeway.com and albertsons.com"
+        );
+        return;
       }
+
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func,
+      });
     } catch (error) {
       console.error("Failed to execute script in active tab:", error);
     }
+  };
+
+  const isAllowedDomain = (url: string) => {
+    const allowedDomains = ["albertsons.com", "safeway.com"];
+    return allowedDomains.some((domain) => url.toLowerCase().includes(domain));
   };
 
   const loadAllHandler = async () => {
@@ -110,6 +122,21 @@ function App() {
         <div className="card">
           <button onClick={clipAllHandler}>Clip All</button>
         </div>
+      </div>
+
+      <div className="card">
+        <button onClick={() => setShowInstructions(!showInstructions)}>
+          {showInstructions ? "Hide Instructions" : "Show Instructions"}
+        </button>
+        {showInstructions && (
+          <ol className="list-decimal mt-2 text-left">
+            <li>Navigate to the Albertsons or Safeway coupon page.</li>
+            <li>
+              (Optional) Click "Load All" to load all coupons on the page.
+            </li>
+            <li>Click "Clip All" to clip all loaded coupons.</li>
+          </ol>
+        )}
       </div>
     </div>
   );
