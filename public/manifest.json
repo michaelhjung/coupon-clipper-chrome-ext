@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Coupon Clipper",
   "version": "0.1.0",
-  "description": "A basic Chrome extension for conveniently clipping all coupons on a page.",
+  "description": "Tired of clipping grocery store coupons one by one? This free chrome extension allows a convenient way to clip all coupons with a click of a button. Currently supports Safeway and Albertsons online coupons.",
   "permissions": ["scripting", "storage", "activeTab", "tabs"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "action": {
