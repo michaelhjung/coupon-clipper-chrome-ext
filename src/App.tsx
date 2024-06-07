@@ -3,7 +3,30 @@ import "./App.css";
 import couponClipperLogo from "/imgs/logo.jpg";
 
 function App() {
+  const [selectedStore, setSelectedStore] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
+
+  const stores = [
+    {
+      storeName: "Safeway",
+      url: "https://www.safeway.com/foru/coupons-deals.html",
+    },
+    {
+      storeName: "Albertsons",
+      url: "https://www.albertsons.com/foru/coupons-deals.html",
+    },
+  ];
+
+  const handleGoClick = () => {
+    const store = stores.find((store) => store.storeName === selectedStore);
+
+    if (store) {
+      window.open(store.url, "_blank");
+      return;
+    }
+
+    alert("Please select a store.");
+  };
 
   const executeScriptInActiveTab = async (func: () => void) => {
     try {
@@ -12,7 +35,7 @@ function App() {
         currentWindow: true,
       });
 
-      if (!tab?.id || !tab?.url || isAllowedDomain(tab.url)) {
+      if (!tab?.id || !tab?.url || !isAllowedDomain(tab.url)) {
         alert(
           "Sorry, this coupon clipper is currently limited for use at safeway.com and albertsons.com"
         );
@@ -35,6 +58,7 @@ function App() {
 
   const loadAllHandler = async () => {
     await executeScriptInActiveTab(clickLoadMoreButtons);
+    alert("All coupons loaded!");
   };
 
   const clipAllHandler = async () => {
@@ -79,24 +103,27 @@ function App() {
   };
 
   const clipAllCoupons = () => {
-    const clipCouponButtons = document.querySelectorAll(
-      "loyalty-card-action-buttons button"
-    );
+    return new Promise<void>((resolve) => {
+      const clipCouponButtons = document.querySelectorAll(
+        "loyalty-card-action-buttons button"
+      );
 
-    let clipCount = 0;
+      let clipCount = 0;
 
-    clipCouponButtons.forEach((element) => {
-      const button = element as HTMLButtonElement;
-      if (
-        button.innerText === "Clip Coupon" ||
-        button.innerText === "Activate"
-      ) {
-        button.click();
-        clipCount++;
-      }
+      clipCouponButtons.forEach((element) => {
+        const button = element as HTMLButtonElement;
+        if (
+          button.innerText === "Clip Coupon" ||
+          button.innerText === "Activate"
+        ) {
+          button.click();
+          clipCount++;
+        }
+      });
+
+      alert(`Clipped ${clipCount} ${clipCount === 1 ? "coupon" : "coupons"}!`);
+      resolve();
     });
-
-    alert(`Clipped ${clipCount} ${clipCount === 1 ? "coupon" : "coupons"}!`);
   };
 
   return (
@@ -114,7 +141,27 @@ function App() {
           />
         </a>
       </div>
+
       <h1>Coupon Clipper</h1>
+
+      <div className="mt-2">
+        <label htmlFor="storeSelect">Go To:</label>
+        <select
+          id="storeSelect"
+          className="m-2"
+          value={selectedStore}
+          onChange={(e) => setSelectedStore(e.target.value)}
+        >
+          <option value="">Select a store</option>
+          {stores.map((store) => (
+            <option key={store.storeName} value={store.storeName}>
+              {store.storeName}
+            </option>
+          ))}
+        </select>
+        <button onClick={handleGoClick}>Go</button>
+      </div>
+
       <div className="flex">
         <div className="card">
           <button onClick={loadAllHandler}>Load All</button>
@@ -124,7 +171,7 @@ function App() {
         </div>
       </div>
 
-      <div className="card">
+      <div>
         <button onClick={() => setShowInstructions(!showInstructions)}>
           {showInstructions ? "Hide Instructions" : "Show Instructions"}
         </button>
