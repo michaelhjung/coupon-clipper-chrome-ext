@@ -39,15 +39,18 @@ function App() {
         alert(
           "Sorry, this coupon clipper is currently limited for use at safeway.com and albertsons.com"
         );
-        return;
+        return false;
       }
 
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func,
       });
+
+      return true;
     } catch (error) {
       console.error("Failed to execute script in active tab:", error);
+      return false;
     }
   };
 
@@ -57,12 +60,13 @@ function App() {
   };
 
   const loadAllHandler = async () => {
-    await executeScriptInActiveTab(clickLoadMoreButtons);
-    alert("All coupons loaded!");
+    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+    if (couponsLoaded) alert("All coupons loaded!");
   };
 
   const clipAllHandler = async () => {
-    await executeScriptInActiveTab(clickLoadMoreButtons);
+    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+    if (!couponsLoaded) return;
     await executeScriptInActiveTab(clipAllCoupons);
   };
 
