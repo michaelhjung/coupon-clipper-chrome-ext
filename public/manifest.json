@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "description": "Conveniently clip all grocery coupons with a click of a button. Currently supports Safeway and Albertsons online coupons.",
   "permissions": ["scripting", "storage", "activeTab", "tabs"],
-  "host_permissions": ["http://*/*", "https://*/*"],
+  "host_permissions": [
+    "https://www.safeway.com/*",
+    "https://safeway.com/*",
+    "https://www.albertsons.com/*",
+    "https://albertsons.com/*"
+  ],
   "action": {
     "default_popup": "index.html",
     "default_icon": {
