@@ -129,26 +129,31 @@ function App() {
   return (
     <div className="flex flex-col justify-center items-center">
       <div>
+        <img
+          src={couponClipperLogo}
+          className="logo"
+          alt="Coupon Clipper logo"
+        />
+      </div>
+
+      <h1 className="text-3xl pt-2 pb-1">Coupon Clipper</h1>
+
+      <small>
+        by{" "}
         <a
           href="https://michaelhjung.com"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <img
-            src={couponClipperLogo}
-            className="logo"
-            alt="Coupon Clipper logo"
-          />
+          Michael Jung
         </a>
-      </div>
+      </small>
 
-      <h1>Coupon Clipper</h1>
-
-      <div className="mt-2">
+      <div className="mt-6">
         <label htmlFor="storeSelect">Go To:</label>
         <select
           id="storeSelect"
-          className="m-2"
+          className="m-2 p-2"
           value={selectedStore}
           onChange={(e) => setSelectedStore(e.target.value)}
         >
@@ -179,7 +184,15 @@ function App() {
           <ol className="list-decimal mt-2 text-left">
             <li>Navigate to the Albertsons or Safeway coupon page.</li>
             <li>
-              (Optional) Click "Load All" to load all coupons on the page.
+              <div>
+                (Optional) Click "Load All" to load all coupons on the page.
+              </div>
+              <div>
+                <small>
+                  *Note: clicking "Clip All" will automatically load all coupons
+                  for you before clipping them.
+                </small>
+              </div>
             </li>
             <li>Click "Clip All" to clip all loaded coupons.</li>
           </ol>
