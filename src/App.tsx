@@ -1,5 +1,7 @@
 import { useState } from "react";
+
 import "./App.css";
+
 import couponClipperLogo from "/imgs/logo.jpg";
 
 function App() {
