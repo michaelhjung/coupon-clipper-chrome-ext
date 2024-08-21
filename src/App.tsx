@@ -6,6 +6,9 @@ import couponClipperLogo from "/imgs/logo.jpg";
 
 function App() {
   const [selectedStore, setSelectedStore] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [clipping, setClipping] = useState(false);
+  const [counting, setCounting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
 
   const stores = [
@@ -44,7 +47,7 @@ function App() {
         return false;
       }
 
-      chrome.scripting.executeScript({
+      await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func,
       });
@@ -62,14 +65,29 @@ function App() {
   };
 
   const loadAllHandler = async () => {
+    setLoading(true);
     const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+    setLoading(false);
+
     if (couponsLoaded) alert("All coupons loaded!");
   };
 
   const clipAllHandler = async () => {
+    setClipping(true);
     const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
-    if (!couponsLoaded) return;
+    if (!couponsLoaded) return setClipping(false);
+
     await executeScriptInActiveTab(clipAllCoupons);
+    setClipping(false);
+  };
+
+  const countAllHandler = async () => {
+    setCounting(true);
+    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+    if (!couponsLoaded) return setCounting(false);
+
+    await executeScriptInActiveTab(countAvailableCoupons);
+    setCounting(false);
   };
 
   const clickLoadMoreButtons = () => {
@@ -109,26 +127,55 @@ function App() {
   };
 
   const clipAllCoupons = () => {
+    let clipCount = 0;
+
     return new Promise<void>((resolve) => {
       const clipCouponButtons = document.querySelectorAll(
         "loyalty-card-action-buttons button"
       );
 
-      let clipCount = 0;
-
       clipCouponButtons.forEach((element) => {
         const button = element as HTMLButtonElement;
-        if (
-          button.innerText === "Clip Coupon" ||
-          button.innerText === "Activate"
-        ) {
+        const targetInnerTexts = ["clip coupon", "activate"];
+        if (targetInnerTexts.includes(button.innerText.trim().toLowerCase())) {
           button.click();
           clipCount++;
         }
       });
 
-      alert(`Clipped ${clipCount} ${clipCount === 1 ? "coupon" : "coupons"}!`);
       resolve();
+    }).then(() => {
+      const alertMessage =
+        clipCount === 0
+          ? `Looks like you've already clipped all the coupons!`
+          : `Clipped ${clipCount} ${clipCount === 1 ? "coupon" : "coupons"}!`;
+      alert(alertMessage + " Nice, you're one step closer to saving $$$!");
+    });
+  };
+
+  const countAvailableCoupons = () => {
+    let couponCount = 0;
+
+    return new Promise<void>((resolve) => {
+      const couponButtons = document.querySelectorAll(
+        "loyalty-card-action-buttons button"
+      );
+
+      couponButtons.forEach((element) => {
+        const button = element as HTMLButtonElement;
+        const targetInnerTexts = ["clip coupon", "activate"];
+        if (targetInnerTexts.includes(button.innerText.trim().toLowerCase())) {
+          couponCount++;
+        }
+      });
+
+      resolve();
+    }).then(() => {
+      alert(
+        `There are ${couponCount} ${
+          couponCount === 1 ? "coupon" : "coupons"
+        } available to clip!`
+      );
     });
   };
 
@@ -175,10 +222,19 @@ function App() {
 
       <div className="flex">
         <div className="card">
-          <button onClick={loadAllHandler}>Load All</button>
+          <button onClick={loadAllHandler} disabled={loading}>
+            {loading ? "Loading..." : "Load All"}
+          </button>
         </div>
         <div className="card">
-          <button onClick={clipAllHandler}>Clip All</button>
+          <button onClick={countAllHandler} disabled={counting}>
+            {counting ? "Counting..." : "Count Available"}
+          </button>
+        </div>
+        <div className="card">
+          <button onClick={clipAllHandler} disabled={clipping}>
+            {clipping ? "Clipping..." : "Clip All"}
+          </button>
         </div>
       </div>
 
@@ -195,12 +251,22 @@ function App() {
               </div>
               <div>
                 <small>
-                  *Note: clicking "Clip All" will automatically load all coupons
-                  for you before clipping them.
+                  <strong>*Note</strong>: clicking "Clip All" will automatically
+                  load all coupons for you before clipping them.
                 </small>
               </div>
             </li>
-            <li>Click "Clip All" to clip all loaded coupons.</li>
+            <li>
+              <div>Click "Clip All" to clip all loaded coupons.</div>
+              <div>
+                <small>
+                  <strong>*IMPORTANT</strong>: try NOT to close the tab too
+                  early or refresh the page - double-check to check if all
+                  coupons have been clipped by using the "Count Available"
+                  button (this should say 0).
+                </small>
+              </div>
+            </li>
           </ol>
         )}
       </div>
