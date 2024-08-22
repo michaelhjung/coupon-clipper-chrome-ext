@@ -172,7 +172,7 @@ function App() {
       resolve();
     }).then(() => {
       alert(
-        `There are ${couponCount} ${
+        `There ${couponCount === 1 ? "is" : "are"} ${couponCount} ${
           couponCount === 1 ? "coupon" : "coupons"
         } available to clip!`
       );
