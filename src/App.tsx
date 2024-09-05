@@ -1,8 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import "./App.css";
 
 import couponClipperLogo from "/imgs/logo.jpg";
+
+const executeScriptInActiveTab = async (func: () => void) => {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (!tab?.id || !tab?.url || !isAllowedDomain(tab.url)) {
+      alert(
+        "Sorry, this coupon clipper is currently limited for use at safeway.com and albertsons.com"
+      );
+      return false;
+    }
+
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to execute script in active tab:", error);
+    return false;
+  }
+};
+
+// TODO: figure out why helper functions don't get executed inside of clipAllCoupons and countAvailableCoupons
+// const getCouponButtons = () => {
+//   const couponButtons = Array.from(
+//     document.querySelectorAll("loyalty-card-action-buttons button")
+//   ) as HTMLButtonElement[];
+
+//   const couponButtonInnerTexts = ["clip coupon", "activate"];
+
+//   return couponButtons.filter((button) =>
+//     couponButtonInnerTexts.includes(button.innerText.trim().toLowerCase())
+//   );
+// };
+
+type MessageType = {
+  type: "CLIP_COUPONS_DONE" | "COUNT_COUPONS_DONE";
+  count: number;
+};
+
+const stores = [
+  {
+    storeName: "Safeway",
+    url: "https://www.safeway.com/foru/coupons-deals.html",
+  },
+  {
+    storeName: "Albertsons",
+    url: "https://www.albertsons.com/foru/coupons-deals.html",
+  },
+];
+
+const isAllowedDomain = (url: string) => {
+  const allowedDomains = ["albertsons.com", "safeway.com"];
+  return allowedDomains.some((domain) => url.toLowerCase().includes(domain));
+};
 
 function App() {
   const [selectedStore, setSelectedStore] = useState("");
@@ -11,16 +71,33 @@ function App() {
   const [counting, setCounting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
 
-  const stores = [
-    {
-      storeName: "Safeway",
-      url: "https://www.safeway.com/foru/coupons-deals.html",
-    },
-    {
-      storeName: "Albertsons",
-      url: "https://www.albertsons.com/foru/coupons-deals.html",
-    },
-  ];
+  useEffect(() => {
+    const handleMessage = (message: MessageType) => {
+      if (message.type === "CLIP_COUPONS_DONE") {
+        const alertMessage =
+          message.count === 0
+            ? `Looks like you've already clipped all the coupons!`
+            : `Clipped ${message.count} ${
+                message.count === 1 ? "coupon" : "coupons"
+              }!`;
+        alert(alertMessage + " Nice, you're one step closer to saving $$$!");
+      }
+
+      if (message.type === "COUNT_COUPONS_DONE") {
+        alert(
+          `There ${message.count === 1 ? "is" : "are"} ${message.count} ${
+            message.count === 1 ? "coupon" : "coupons"
+          } available to clip!`
+        );
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
+  }, []);
 
   const handleGoClick = () => {
     const store = stores.find((store) => store.storeName === selectedStore);
@@ -33,61 +110,12 @@ function App() {
     alert("Please select a store.");
   };
 
-  const executeScriptInActiveTab = async (func: () => void) => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-
-      if (!tab?.id || !tab?.url || !isAllowedDomain(tab.url)) {
-        alert(
-          "Sorry, this coupon clipper is currently limited for use at safeway.com and albertsons.com"
-        );
-        return false;
-      }
-
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func,
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Failed to execute script in active tab:", error);
-      return false;
-    }
-  };
-
-  const isAllowedDomain = (url: string) => {
-    const allowedDomains = ["albertsons.com", "safeway.com"];
-    return allowedDomains.some((domain) => url.toLowerCase().includes(domain));
-  };
-
   const loadAllHandler = async () => {
     setLoading(true);
     const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
     setLoading(false);
 
     if (couponsLoaded) alert("All coupons loaded!");
-  };
-
-  const clipAllHandler = async () => {
-    setClipping(true);
-    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
-    if (!couponsLoaded) return setClipping(false);
-
-    await executeScriptInActiveTab(clipAllCoupons);
-    setClipping(false);
-  };
-
-  const countAllHandler = async () => {
-    setCounting(true);
-    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
-    if (!couponsLoaded) return setCounting(false);
-
-    await executeScriptInActiveTab(countAvailableCoupons);
-    setCounting(false);
   };
 
   const clickLoadMoreButtons = () => {
@@ -99,6 +127,12 @@ function App() {
 
         if (button) {
           button.click();
+
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: "smooth",
+          });
+
           console.info("Clicked 'Load more' button.");
         } else {
           observer.disconnect();
@@ -126,56 +160,59 @@ function App() {
     });
   };
 
-  const clipAllCoupons = () => {
+  const clipAllHandler = async () => {
+    setClipping(true);
+    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+    if (!couponsLoaded) return setClipping(false);
+
+    await executeScriptInActiveTab(clipAllCoupons);
+    setClipping(false);
+  };
+
+  const clipAllCoupons = async () => {
+    const couponButtons = Array.from(
+      document.querySelectorAll("loyalty-card-action-buttons button")
+    ) as HTMLButtonElement[];
+    const couponButtonInnerTexts = ["clip coupon", "activate"];
+    const filteredCouponButtons =
+      couponButtons.filter((button) =>
+        couponButtonInnerTexts.includes(button.innerText.trim().toLowerCase())
+      ) || [];
+
     let clipCount = 0;
+    filteredCouponButtons.forEach((button) => {
+      button.click();
+      clipCount++;
+    });
 
-    return new Promise<void>((resolve) => {
-      const clipCouponButtons = document.querySelectorAll(
-        "loyalty-card-action-buttons button"
-      );
-
-      clipCouponButtons.forEach((element) => {
-        const button = element as HTMLButtonElement;
-        const targetInnerTexts = ["clip coupon", "activate"];
-        if (targetInnerTexts.includes(button.innerText.trim().toLowerCase())) {
-          button.click();
-          clipCount++;
-        }
-      });
-
-      resolve();
-    }).then(() => {
-      const alertMessage =
-        clipCount === 0
-          ? `Looks like you've already clipped all the coupons!`
-          : `Clipped ${clipCount} ${clipCount === 1 ? "coupon" : "coupons"}!`;
-      alert(alertMessage + " Nice, you're one step closer to saving $$$!");
+    chrome.runtime.sendMessage({
+      type: "CLIP_COUPONS_DONE",
+      count: clipCount,
     });
   };
 
-  const countAvailableCoupons = () => {
-    let couponCount = 0;
+  const countAllHandler = async () => {
+    setCounting(true);
+    const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+    if (!couponsLoaded) return setCounting(false);
 
-    return new Promise<void>((resolve) => {
-      const couponButtons = document.querySelectorAll(
-        "loyalty-card-action-buttons button"
-      );
+    await executeScriptInActiveTab(countAvailableCoupons);
+    setCounting(false);
+  };
 
-      couponButtons.forEach((element) => {
-        const button = element as HTMLButtonElement;
-        const targetInnerTexts = ["clip coupon", "activate"];
-        if (targetInnerTexts.includes(button.innerText.trim().toLowerCase())) {
-          couponCount++;
-        }
-      });
+  const countAvailableCoupons = async () => {
+    const couponButtons = Array.from(
+      document.querySelectorAll("loyalty-card-action-buttons button")
+    ) as HTMLButtonElement[];
+    const couponButtonInnerTexts = ["clip coupon", "activate"];
+    const filteredCouponButtons =
+      couponButtons.filter((button) =>
+        couponButtonInnerTexts.includes(button.innerText.trim().toLowerCase())
+      ) || [];
 
-      resolve();
-    }).then(() => {
-      alert(
-        `There ${couponCount === 1 ? "is" : "are"} ${couponCount} ${
-          couponCount === 1 ? "coupon" : "coupons"
-        } available to clip!`
-      );
+    chrome.runtime.sendMessage({
+      type: "COUNT_COUPONS_DONE",
+      count: filteredCouponButtons.length,
     });
   };
 
@@ -222,12 +259,12 @@ function App() {
 
       <div className="flex">
         <div className="card">
-          <button onClick={loadAllHandler} disabled={loading}>
+          <button onClick={loadAllHandler} disabled={loading || clipping}>
             {loading ? "Loading..." : "Load All"}
           </button>
         </div>
         <div className="card">
-          <button onClick={countAllHandler} disabled={counting}>
+          <button onClick={countAllHandler} disabled={counting || clipping}>
             {counting ? "Counting..." : "Count Available"}
           </button>
         </div>
@@ -260,13 +297,15 @@ function App() {
               <div>Click "Clip All" to clip all loaded coupons.</div>
               <div>
                 <small>
-                  <strong>*IMPORTANT</strong>: try NOT to close the tab too
-                  early or refresh the page - double-check to check if all
-                  coupons have been clipped by using the "Count Available"
-                  button (this should say 0).
+                  <strong>*IMPORTANT</strong>: Do NOT close the tab too early or
+                  refresh the page. Wait until "Clipping..." goes back to saying
+                  "Clip All". Once you see all the coupons have been clipped,
+                  you can double-check by using the "Count Available" button
+                  (this should say 0).
                 </small>
               </div>
             </li>
+            <li>Sit back, and watch the magic happen.</li>
           </ol>
         )}
       </div>
