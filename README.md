@@ -12,7 +12,7 @@ Automatically clip all coupons on a webpage at once!
 &nbsp;•&nbsp;
 **[Extension URL](https://chromewebstore.google.com/detail/coupon-clipper/dihamlfidaeahaijeogelncpkpefhded?pli=1)**
 
-https://github.com/user-attachments/assets/a860a948-ab3d-4f61-be94-a1429f9e801b
+https://github.com/user-attachments/assets/a20755bb-2f11-4b94-847e-9ab10ae1832b
 
 [![Typescript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://react.dev/)
