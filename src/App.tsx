@@ -13,7 +13,7 @@ const executeScriptInActiveTab = async (func: () => void) => {
 
     if (!tab?.id || !tab?.url || !isAllowedDomain(tab.url)) {
       alert(
-        "Sorry, this coupon clipper is currently limited for use at safeway.com and albertsons.com"
+        "Sorry, this coupon clipper is currently limited for use at albertsons.com, safeway.com, or vons.com"
       );
       return false;
     }
@@ -57,10 +57,14 @@ const stores = [
     storeName: "Albertsons",
     url: "https://www.albertsons.com/foru/coupons-deals.html",
   },
+  {
+    storeName: "Vons",
+    url: "https://www.vons.com/foru/coupons-deals.html",
+  },
 ];
 
 const isAllowedDomain = (url: string) => {
-  const allowedDomains = ["albertsons.com", "safeway.com"];
+  const allowedDomains = ["albertsons.com", "safeway.com", "vons.com"];
   return allowedDomains.some((domain) => url.toLowerCase().includes(domain));
 };
 
@@ -281,7 +285,7 @@ function App() {
         </button>
         {showInstructions && (
           <ol className="list-decimal mt-2 text-left">
-            <li>Navigate to the Albertsons or Safeway coupon page.</li>
+            <li>Navigate to the Albertsons, Safeway, or Vons coupon page.</li>
             <li>
               <div>
                 (Optional) Click "Load All" to load all coupons on the page.
