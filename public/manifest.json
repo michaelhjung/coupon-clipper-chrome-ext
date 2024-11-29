@@ -1,14 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Coupon Clipper",
-  "version": "0.3.0",
-  "description": "Conveniently clip all grocery coupons with a click of a button. Currently supports Safeway and Albertsons online coupons.",
+  "version": "0.4.0",
+  "description": "Conveniently clip all grocery coupons with a click of a button. Currently supports Safeway, Albertsons, and Vons online coupons.",
   "permissions": ["scripting", "tabs"],
   "host_permissions": [
-    "https://www.safeway.com/*",
-    "https://safeway.com/*",
-    "https://www.albertsons.com/*",
-    "https://albertsons.com/*"
+    "https://*.safeway.com/*",
+    "http://*.safeway.com/*",
+    "https://*.albertsons.com/*",
+    "http://*.albertsons.com/*",
+    "https://*.vons.com/*",
+    "http://*.vons.com/*"
   ],
   "action": {
     "default_popup": "index.html",
