@@ -11,6 +11,7 @@ export const clipAllHandler = async (
   setClipping: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
   setClipping(true);
+
   const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
   if (!couponsLoaded) return setClipping(false);
 
@@ -22,7 +23,6 @@ const clipCouponsUsingAPI = async () => {
   const dataElement = document.getElementById("coupon-clipper-data");
   if (!dataElement) throw new Error("There was a problem clipping the coupons");
 
-  // Create a loader element
   const loader = document.createElement("div");
   loader.id = "clipping-loader";
   loader.style.position = "fixed";
@@ -52,7 +52,6 @@ const clipCouponsUsingAPI = async () => {
       </div>
     `;
 
-  // Inject styles for the bouncing dots
   const style = document.createElement("style");
   style.textContent = `
       @keyframes bounce {

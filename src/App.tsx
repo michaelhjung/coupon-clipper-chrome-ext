@@ -4,7 +4,7 @@ import "./App.css";
 
 import couponClipperLogo from "/imgs/logo.jpg";
 
-import { STORES } from "./constants";
+import { CHROME_EXT_URL, STORES, VERSION } from "./constants";
 import { clipAllHandler } from "./coupons/clip";
 import { countAllHandler } from "./coupons/count";
 import { loadAllHandler } from "./coupons/load";
@@ -62,6 +62,11 @@ function App() {
       <h1 className="text-3xl pt-2 pb-1">Coupon Clipper</h1>
 
       <small>
+        <strong>Version:</strong>{" "}
+        <a href={CHROME_EXT_URL} target="_blank" rel="noopener noreferrer">
+          {VERSION}
+        </a>
+        <br />
         by{" "}
         <a
           href="https://michaelhjung.com"
@@ -155,7 +160,8 @@ function App() {
               <div>
                 <small>
                   <strong>*IMPORTANT</strong>: Do NOT close the tab too early or
-                  refresh the page. Wait until
+                  refresh the page. Wait until you see the alert message that
+                  says: "X coupons clipped successfully!"
                 </small>
               </div>
             </li>

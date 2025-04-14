@@ -4,6 +4,7 @@ export const loadAllHandler = async (
   setLoading: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
   setLoading(true);
+
   const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
   setLoading(false);
 

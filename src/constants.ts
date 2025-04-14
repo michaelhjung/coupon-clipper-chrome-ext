@@ -1,5 +1,10 @@
 import { generateUUID } from "./utils/general";
 
+export const VERSION = "1.0.0";
+
+export const CHROME_EXT_URL =
+  "https://chromewebstore.google.com/detail/coupon-clipper/dihamlfidaeahaijeogelncpkpefhded";
+
 export const DEFAULT_STORE_ID = "3132";
 export const DEFAULT_CLIENT_ID = "306b9569-2a31-4fb9-93aa-08332ba3c55d";
 export const DEFAULT_CLIENT_SECRET =

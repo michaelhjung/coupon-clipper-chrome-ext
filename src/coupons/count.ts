@@ -5,6 +5,7 @@ export const countAllHandler = async (
   setCounting: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
   setCounting(true);
+
   const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
   if (!couponsLoaded) return setCounting(false);
 
