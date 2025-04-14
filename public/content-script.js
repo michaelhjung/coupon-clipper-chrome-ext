@@ -1,22 +1,41 @@
 /* global chrome */
 
-// Ensure the script only runs on the specific URL
 const script = document.createElement("script");
 script.src = chrome.runtime.getURL("page-script.js");
 
-// When the script is loaded, remove it from the DOM
 script.onload = () => {
-  console.log("Page script loaded successfully!");
+  console.info("Page script loaded successfully!");
   script.remove();
 };
 
-// Append the script to the page
 (document.head || document.documentElement).append(script);
 
 // Listen for messages from the page context
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
   if (event.data.source === "coupon-clipper") {
-    console.log("Got data from page context:", event.data.payload);
+    console.info("Got data from page context:", event.data.payload);
   }
+
+  // Create a hidden element to store the data
+  const dataElement = document.createElement("div");
+  dataElement.style.display = "none";
+  dataElement.id = "coupon-clipper-data";
+  dataElement.setAttribute("data-store-id", event.data.payload.storeId);
+  dataElement.setAttribute("data-client-id", event.data.payload.clientId);
+  dataElement.setAttribute(
+    "data-client-secret",
+    event.data.payload.clientSecret
+  );
+  dataElement.setAttribute(
+    "data-correlation-id",
+    event.data.payload.correlationId
+  );
+  dataElement.setAttribute(
+    "data-access-token",
+    event.data.payload.user?.service?._userSession?.SWY_SHOP_TOKEN
+  );
+
+  // Append the element to the body (or head)
+  document.body.appendChild(dataElement);
 });
