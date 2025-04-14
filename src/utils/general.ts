@@ -28,3 +28,6 @@ const encodeStringToNumber = (str: string): number => {
   }
   return encoded;
 };
+
+export const delay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
