@@ -5,7 +5,6 @@ import {
   DEFAULT_CORRELATION_ID,
 } from "../constants";
 import { executeScriptInActiveTab } from "../utils/chrome";
-import { delay } from "../utils/general";
 
 export const clipAllHandler = async (
   setClipping: React.Dispatch<React.SetStateAction<boolean>>
@@ -83,7 +82,12 @@ const clipCouponsUsingAPI = async () => {
   const correlationId = dataElement.getAttribute("data-correlation-id");
   const accessToken = dataElement.getAttribute("data-access-token");
 
-  const url = `https://www.safeway.com/abs/pub/web/j4u/api/offers/clip?storeId=${storeId}`;
+  const getBaseDomain = () => {
+    const hostname = window.location.hostname;
+    console.log("hostname:", hostname);
+    return `https://${hostname}`;
+  };
+  const url = `${getBaseDomain()}/abs/pub/web/j4u/api/offers/clip?storeId=${storeId}`;
   const headers = {
     "Content-Type": "application/json",
     SWY_SSO_TOKEN: accessToken || "",
@@ -201,13 +205,11 @@ const clipCouponsUsingAPI = async () => {
           }
         }
       } else {
-        console.warn(`Failed to clip: ${coupon.name}`);
+        console.warn(`❌ Failed to clip: ${coupon.name}`);
       }
     } catch (err) {
-      console.error(`Error clipping coupon: ${coupon.name}`, err);
+      console.error(`💥 Error clipping coupon: ${coupon.name}`, err);
     }
-
-    await delay(100); // wait 100 milliseconds between clips to be polite
   }
 
   setTimeout(() => {
