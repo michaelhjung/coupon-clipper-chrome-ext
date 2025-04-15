@@ -84,7 +84,6 @@ const clipCouponsUsingAPI = async () => {
 
   const getBaseDomain = () => {
     const hostname = window.location.hostname;
-    console.log("hostname:", hostname);
     return `https://${hostname}`;
   };
   const url = `${getBaseDomain()}/abs/pub/web/j4u/api/offers/clip?storeId=${storeId}`;
