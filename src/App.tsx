@@ -154,7 +154,10 @@ function App() {
         </button>
         {showInstructions && (
           <ol className="list-decimal mt-2 text-left">
-            <li>Navigate to the Albertsons, Safeway, or Vons coupon page.</li>
+            <li>
+              Navigate to the coupon page for the store you want and make sure
+              you're logged in.
+            </li>
             <li>
               <div>
                 (Optional) Click "Load All" to load all coupons on the page.
