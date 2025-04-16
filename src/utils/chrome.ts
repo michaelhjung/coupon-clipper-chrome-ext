@@ -8,9 +8,11 @@ export const executeScriptInActiveTab = async (func: () => void) => {
     });
 
     if (!tab?.id || !tab?.url || !isAllowedDomain(tab.url)) {
-      `Sorry, this coupon clipper is currently limited for use at the following websites:\n\n${STORES.map(
-        (store) => `• ${store.url}`
-      ).join("\n")}`;
+      alert(
+        `Sorry, this coupon clipper is currently limited for use at the following websites:\n\n${STORES.map(
+          (store) => `• ${store.url}`
+        ).join("\n")}`
+      );
       return false;
     }
 
