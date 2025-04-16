@@ -27,6 +27,6 @@ export const executeScriptInActiveTab = async (func: () => void) => {
 };
 
 const isAllowedDomain = (url: string) => {
-  const allowedDomains = ["albertsons.com", "safeway.com", "vons.com"];
+  const allowedDomains = STORES.map((store) => store.url);
   return allowedDomains.some((domain) => url.toLowerCase().includes(domain));
 };
