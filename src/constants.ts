@@ -1,6 +1,6 @@
 import { generateUUID } from "./utils/general";
 
-export const VERSION = "1.1.0";
+export const VERSION = "1.2.0";
 
 export const CHROME_EXT_URL =
   "https://chromewebstore.google.com/detail/coupon-clipper/dihamlfidaeahaijeogelncpkpefhded";
@@ -13,15 +13,63 @@ export const DEFAULT_CORRELATION_ID = generateUUID();
 
 export const STORES = [
   {
-    storeName: "Safeway",
-    url: "https://www.safeway.com/foru/coupons-deals.html",
+    name: "Acme",
+    url: "https://www.acmemarkets.com",
   },
   {
-    storeName: "Albertsons",
-    url: "https://www.albertsons.com/foru/coupons-deals.html",
+    name: "Albertsons",
+    url: "https://www.albertsons.com",
   },
   {
-    storeName: "Vons",
-    url: "https://www.vons.com/foru/coupons-deals.html",
+    name: "Andronico's",
+    url: "https://www.andronicos.com",
+  },
+  {
+    name: "Balducci's",
+    url: "https://www.balduccis.com",
+  },
+  {
+    name: "Carrs",
+    url: "https://www.carrsqc.com",
+  },
+  {
+    name: "Haggen",
+    url: "https://www.haggen.com",
+  },
+  {
+    name: "Jewel-Osco",
+    url: "https://www.jewelosco.com",
+  },
+  {
+    name: "Kings Food Markets",
+    url: "https://www.kingsfoodmarkets.com",
+  },
+  {
+    name: "Pavilions",
+    url: "https://www.pavilions.com",
+  },
+  {
+    name: "Randalls",
+    url: "https://www.randalls.com",
+  },
+  {
+    name: "Safeway",
+    url: "https://www.safeway.com",
+  },
+  {
+    name: "Shaw's",
+    url: "https://www.shaws.com",
+  },
+  {
+    name: "Star Market",
+    url: "https://www.starmarket.com",
+  },
+  {
+    name: "Tom Thumb",
+    url: "https://www.tomthumb.com",
+  },
+  {
+    name: "Vons",
+    url: "https://www.vons.com",
   },
 ];

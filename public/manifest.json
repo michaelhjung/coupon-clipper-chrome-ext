@@ -1,39 +1,66 @@
 {
   "manifest_version": 3,
   "name": "Coupon Clipper",
-  "version": "1.1.0",
-  "description": "Conveniently clip all grocery coupons with a click of a button. Currently supports Safeway, Albertsons, and Vons online coupons.",
-  "permissions": ["scripting", "tabs", "activeTab"],
+  "version": "1.2.0",
+  "description": "Conveniently clip digital grocery coupons with a click of a button. Supports Safeway, Albertsons, Vons, Andronico's, and many other affiliated stores.",
+  "permissions": ["storage", "scripting", "tabs", "activeTab"],
   "host_permissions": [
-    "https://*.safeway.com/*",
-    "http://*.safeway.com/*",
+    "https://*.acmemarkets.com/*",
     "https://*.albertsons.com/*",
-    "http://*.albertsons.com/*",
-    "https://*.vons.com/*",
-    "http://*.vons.com/*"
+    "https://*.andronicos.com/*",
+    "https://*.balduccis.com/*",
+    "https://*.carrsqc.com/*",
+    "https://*.haggen.com/*",
+    "https://*.jewelosco.com/*",
+    "https://*.kingsfoodmarkets.com/*",
+    "https://*.pavilions.com/*",
+    "https://*.randalls.com/*",
+    "https://*.safeway.com/*",
+    "https://*.shaws.com/*",
+    "https://*.starmarket.com/*",
+    "https://*.tomthumb.com/*",
+    "https://*.vons.com/*"
   ],
   "web_accessible_resources": [
     {
       "resources": ["page-script.js"],
       "matches": [
-        "https://*.safeway.com/*",
-        "http://*.safeway.com/*",
+        "https://*.acmemarkets.com/*",
         "https://*.albertsons.com/*",
-        "http://*.albertsons.com/*",
-        "https://*.vons.com/*",
-        "http://*.vons.com/*"
+        "https://*.andronicos.com/*",
+        "https://*.balduccis.com/*",
+        "https://*.carrsqc.com/*",
+        "https://*.haggen.com/*",
+        "https://*.jewelosco.com/*",
+        "https://*.kingsfoodmarkets.com/*",
+        "https://*.pavilions.com/*",
+        "https://*.randalls.com/*",
+        "https://*.safeway.com/*",
+        "https://*.shaws.com/*",
+        "https://*.starmarket.com/*",
+        "https://*.tomthumb.com/*",
+        "https://*.vons.com/*"
       ]
     }
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://*.safeway.com/*",
-        "http://*.safeway.com/*",
+        "https://*.acmemarkets.com/*",
         "https://*.albertsons.com/*",
-        "http://*.albertsons.com/*",
-        "https://*.vons.com/*",
-        "http://*.vons.com/*"
+        "https://*.andronicos.com/*",
+        "https://*.balduccis.com/*",
+        "https://*.carrsqc.com/*",
+        "https://*.haggen.com/*",
+        "https://*.jewelosco.com/*",
+        "https://*.kingsfoodmarkets.com/*",
+        "https://*.pavilions.com/*",
+        "https://*.randalls.com/*",
+        "https://*.safeway.com/*",
+        "https://*.shaws.com/*",
+        "https://*.starmarket.com/*",
+        "https://*.tomthumb.com/*",
+        "https://*.vons.com/*"
       ],
       "js": ["content-script.js"],
       "run_at": "document_idle",

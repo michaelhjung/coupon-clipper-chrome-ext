@@ -22,6 +22,14 @@ function App() {
   const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
+    // load any previously selected store
+    const chromeLocalStorage = chrome?.storage?.local;
+    if (chromeLocalStorage) {
+      chromeLocalStorage.get(["selectedStore"], (result) => {
+        if (result.selectedStore) setSelectedStore(result.selectedStore);
+      });
+    }
+
     const handleMessage = (message: MessageType) => {
       if (message.type === "CLIP_COUPONS_DONE") {
         const alertMessage =
@@ -83,27 +91,30 @@ function App() {
           id="storeSelect"
           className="m-2 p-2"
           value={selectedStore}
-          onChange={(e) => setSelectedStore(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSelectedStore(value);
+            chrome.storage.local.set({ selectedStore: value });
+          }}
         >
           <option value="">Select a store</option>
           {STORES.map((store) => (
-            <option key={store.storeName} value={store.storeName}>
-              {store.storeName}
+            <option key={store.name} value={store.name}>
+              {store.name}
             </option>
           ))}
         </select>
         <button
           onClick={() => {
-            const store = STORES.find(
-              (store) => store.storeName === selectedStore
-            );
+            const store = STORES.find((store) => store.name === selectedStore);
+            if (!store) return alert("Please select a store.");
 
-            if (store) {
-              window.open(store.url, "_blank");
-              return;
-            }
-
-            alert("Please select a store.");
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+              chrome.tabs.create({
+                url: `${store.url}/foru/coupons-deals.html`,
+                windowId: tabs[0].windowId, // Ensure it opens in the same window
+              });
+            });
           }}
         >
           Go
