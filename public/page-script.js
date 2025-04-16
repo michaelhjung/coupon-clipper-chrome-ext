@@ -1,3 +1,6 @@
+if (localStorage.getItem("abJ4uCoupons"))
+  localStorage.removeItem("abJ4uCoupons");
+
 setTimeout(function () {
   try {
     const storeId =
