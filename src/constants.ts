@@ -73,3 +73,5 @@ export const STORES = [
     url: "vons.com",
   },
 ];
+
+export const COUPON_PAGE_PATH = "/foru/coupons-deals.html";

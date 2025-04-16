@@ -1,4 +1,4 @@
-import { STORES } from "../constants";
+import { COUPON_PAGE_PATH, STORES } from "../constants";
 
 export const executeScriptInActiveTab = async (func: () => void) => {
   try {
@@ -12,6 +12,14 @@ export const executeScriptInActiveTab = async (func: () => void) => {
         `Sorry, this coupon clipper is currently limited for use at the following websites:\n\n${STORES.map(
           (store) => `• ${store.url}`
         ).join("\n")}`
+      );
+      return false;
+    }
+
+    if (!tab.url.includes(COUPON_PAGE_PATH)) {
+      const tabHostname = new URL(tab.url).hostname;
+      alert(
+        `Please make sure you're on the coupon page: https://${tabHostname}${COUPON_PAGE_PATH}`
       );
       return false;
     }
