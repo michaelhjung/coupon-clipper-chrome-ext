@@ -155,7 +155,7 @@ function App() {
         {showInstructions && (
           <ol className="list-decimal mt-2 text-left">
             <li>
-              Navigate to the coupon page for the store you want and make sure
+              Navigate to the coupon page for the store you want. Make sure
               you're logged in.
             </li>
             <li>
