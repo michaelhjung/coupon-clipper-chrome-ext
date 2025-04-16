@@ -1,3 +1,5 @@
+import { STORES } from "../constants";
+
 export const executeScriptInActiveTab = async (func: () => void) => {
   try {
     const [tab] = await chrome.tabs.query({
@@ -6,9 +8,9 @@ export const executeScriptInActiveTab = async (func: () => void) => {
     });
 
     if (!tab?.id || !tab?.url || !isAllowedDomain(tab.url)) {
-      alert(
-        "Sorry, this coupon clipper is currently limited for use at albertsons.com, safeway.com, or vons.com"
-      );
+      `Sorry, this coupon clipper is currently limited for use at the following websites:\n\n${STORES.map(
+        (store) => `• ${store.url}`
+      ).join("\n")}`;
       return false;
     }
 

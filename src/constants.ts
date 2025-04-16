@@ -14,62 +14,62 @@ export const DEFAULT_CORRELATION_ID = generateUUID();
 export const STORES = [
   {
     name: "Acme",
-    url: "https://www.acmemarkets.com",
+    url: "acmemarkets.com",
   },
   {
     name: "Albertsons",
-    url: "https://www.albertsons.com",
+    url: "albertsons.com",
   },
   {
     name: "Andronico's",
-    url: "https://www.andronicos.com",
+    url: "andronicos.com",
   },
   {
     name: "Balducci's",
-    url: "https://www.balduccis.com",
+    url: "balduccis.com",
   },
   {
     name: "Carrs",
-    url: "https://www.carrsqc.com",
+    url: "carrsqc.com",
   },
   {
     name: "Haggen",
-    url: "https://www.haggen.com",
+    url: "haggen.com",
   },
   {
     name: "Jewel-Osco",
-    url: "https://www.jewelosco.com",
+    url: "jewelosco.com",
   },
   {
     name: "Kings Food Markets",
-    url: "https://www.kingsfoodmarkets.com",
+    url: "kingsfoodmarkets.com",
   },
   {
     name: "Pavilions",
-    url: "https://www.pavilions.com",
+    url: "pavilions.com",
   },
   {
     name: "Randalls",
-    url: "https://www.randalls.com",
+    url: "randalls.com",
   },
   {
     name: "Safeway",
-    url: "https://www.safeway.com",
+    url: "safeway.com",
   },
   {
     name: "Shaw's",
-    url: "https://www.shaws.com",
+    url: "shaws.com",
   },
   {
     name: "Star Market",
-    url: "https://www.starmarket.com",
+    url: "starmarket.com",
   },
   {
     name: "Tom Thumb",
-    url: "https://www.tomthumb.com",
+    url: "tomthumb.com",
   },
   {
     name: "Vons",
-    url: "https://www.vons.com",
+    url: "vons.com",
   },
 ];

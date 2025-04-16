@@ -111,7 +111,7 @@ function App() {
 
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
               chrome.tabs.create({
-                url: `${store.url}/foru/coupons-deals.html`,
+                url: `https://www.${store.url}/foru/coupons-deals.html`,
                 windowId: tabs[0].windowId, // Ensure it opens in the same window
               });
             });
