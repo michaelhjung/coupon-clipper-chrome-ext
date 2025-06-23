@@ -1,6 +1,6 @@
 import { generateUUID } from "./utils/general";
 
-export const VERSION = "1.2.1";
+export const VERSION = "1.3.0";
 
 export const CHROME_EXT_URL =
   "https://chromewebstore.google.com/detail/coupon-clipper/dihamlfidaeahaijeogelncpkpefhded";
