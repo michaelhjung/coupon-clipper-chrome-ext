@@ -27,6 +27,7 @@ export const clipAllHandler = async (
 const clipCouponsUsingAPI = async () => {
   const dataElement = document.getElementById("coupon-clipper-data");
   if (!dataElement) throw new Error("There was a problem clipping the coupons");
+  let stopClipping = false;
 
   const buildStyle = () => {
     const style = document.createElement("style");
@@ -68,11 +69,9 @@ const clipCouponsUsingAPI = async () => {
     loader.style.fontFamily =
       "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
     loader.style.borderRadius = "12px";
-    loader.style.zIndex = "9999";
+    loader.style.zIndex = "9001";
     loader.style.textAlign = "center";
     loader.style.boxShadow = "0 12px 28px rgba(0,0,0,0.35)";
-    loader.style.pointerEvents = "auto";
-    document.body.style.pointerEvents = "none";
     loader.innerHTML = `
       <p style="margin-bottom: 8px; line-height: 1.5;">Clipping in progress...<br>Please do not refresh the page.</p>
       <p id="clipped-count" style="font-weight: 500; margin-bottom: 16px;" aria-live="polite">Coupons clipped: 0 / 0</p>
@@ -86,19 +85,35 @@ const clipCouponsUsingAPI = async () => {
       <div style="background: rgba(255 255 255 / 0.2); border-radius: 8px; height: 16px; width: 320px; margin: 8px auto 12px;">
         <div id="progress-bar" style="background: #4caf50; height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s ease;"></div>
       </div>
+      <button id="stop-clipping-btn" style="
+        margin-top: 8px;
+        padding: 8px 16px;
+        border: none;
+        background-color: #ff4d4f;
+        color: white;
+        font-size: 14px;
+        border-radius: 6px;
+        cursor: pointer;
+      ">
+        Stop Clipping
+      </button>
     `;
     return loader;
   };
-  const removeLoader = () => {
-    document.body.removeChild(loader);
-    document.body.style.pointerEvents = "";
-  };
+  const removeLoader = () => document.body.removeChild(loader);
 
   const style = buildStyle();
   const loader = buildLoader();
 
   document.head.appendChild(style);
   document.body.appendChild(loader);
+  document
+    .getElementById("stop-clipping-btn")
+    ?.addEventListener("click", () => {
+      stopClipping = true;
+      const btn = document.getElementById("stop-clipping-btn");
+      if (btn) btn.innerText = "Stopping...";
+    });
 
   type CouponData = {
     offerId: string;
@@ -218,6 +233,11 @@ const clipCouponsUsingAPI = async () => {
     let clipped = 0;
 
     for (const coupon of couponData) {
+      if (stopClipping) {
+        console.warn("Clipping stopped by user.");
+        break;
+      }
+
       const body = {
         items: [
           {
