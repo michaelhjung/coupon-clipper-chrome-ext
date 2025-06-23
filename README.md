@@ -1,6 +1,6 @@
 <div align="center" id="readme-header">
 
-<img src="./public/imgs/logo.jpg" alt="logo" width="150" />
+<img src="./public/imgs/logo_v2.png" alt="logo" width="150" />
 
 <br>
 

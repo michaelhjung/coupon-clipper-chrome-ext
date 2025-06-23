@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import "./App.css";
 
-import couponClipperLogo from "/imgs/logo.jpg";
+import couponClipperLogo from "/imgs/logo_v2.png";
 
 import { CHROME_EXT_URL, COUPON_PAGE_PATH, STORES, VERSION } from "./constants";
 import { clipAllHandler } from "./coupons/clip";
@@ -76,11 +76,7 @@ function App() {
         </a>
         <br />
         by{" "}
-        <a
-          href="https://michaelhjung.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href="https://michaelhjung.com" target="_blank" rel="noopener">
           Michael Jung
         </a>
       </small>

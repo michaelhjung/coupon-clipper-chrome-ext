@@ -24,12 +24,13 @@ const clipCouponsUsingAPI = async () => {
 
   const loader = document.createElement("div");
   loader.id = "clipping-loader";
+  loader.setAttribute("role", "alert");
   loader.style.position = "fixed";
   loader.style.top = "50%";
   loader.style.left = "50%";
   loader.style.transform = "translate(-50%, -50%)";
   loader.style.padding = "24px 32px";
-  loader.style.backgroundColor = "rgba(20, 20, 20, 0.5)";
+  loader.style.backgroundColor = "rgba(20, 20, 20, 0.75)";
   loader.style.color = "#fff";
   loader.style.fontSize = "18px";
   loader.style.fontWeight = "300";
@@ -39,15 +40,20 @@ const clipCouponsUsingAPI = async () => {
   loader.style.zIndex = "9999";
   loader.style.textAlign = "center";
   loader.style.boxShadow = "0 12px 28px rgba(0,0,0,0.35)";
+  loader.style.pointerEvents = "auto";
+  document.body.style.pointerEvents = "none";
   loader.innerHTML = `
       <p style="margin-bottom: 8px; line-height: 1.5;">Clipping in progress...<br>Please do not refresh the page.</p>
-      <p id="clipped-count" style="font-weight: 500; margin-bottom: 16px;">Coupons clipped: 0</p>
+      <p id="clipped-count" style="font-weight: 500; margin-bottom: 16px;" aria-live="polite">Coupons clipped: 0 / 0</p>
       <div id="ellipsis-container" style="display: flex; justify-content: center;">
         <div id="ellipsis-animation" style="display: inline-flex; justify-content: space-between; width: 50px;">
           <span class="ellipsis-dot"></span>
           <span class="ellipsis-dot"></span>
           <span class="ellipsis-dot"></span>
         </div>
+      </div>
+      <div style="background: rgba(255 255 255 / 0.2); border-radius: 8px; height: 16px; width: 320px; margin: 8px auto 12px;">
+        <div id="progress-bar" style="background: #4caf50; height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s ease;"></div>
       </div>
     `;
 
@@ -151,6 +157,38 @@ const clipCouponsUsingAPI = async () => {
 
   const couponData = getCouponData();
 
+  const clippedCountElement = document.getElementById("clipped-count");
+  const progressBar = document.getElementById("progress-bar");
+
+  if (couponData.length === 0) {
+    if (clippedCountElement && progressBar) {
+      clippedCountElement.innerHTML = `Coupons clipped: 0 / 0`;
+
+      let progress = 0;
+      const animateBar = () => {
+        if (progress < 100) {
+          progress += 2;
+          progressBar.style.width = `${progress}%`;
+          requestAnimationFrame(animateBar);
+        } else {
+          setTimeout(() => {
+            document.body.removeChild(loader);
+            document.body.style.pointerEvents = "";
+            alert("No coupons found to clip.");
+          }, 300);
+        }
+      };
+
+      animateBar();
+    } else {
+      document.body.removeChild(loader);
+      document.body.style.pointerEvents = "";
+      alert("No coupons found to clip.");
+    }
+
+    return;
+  }
+
   let clipped = 0;
   for (const coupon of couponData) {
     const body = {
@@ -180,9 +218,12 @@ const clipCouponsUsingAPI = async () => {
       if (result?.items?.[0]?.status === 1) {
         clipped++;
 
-        const clippedCountElement = document.getElementById("clipped-count");
         if (clippedCountElement) {
-          clippedCountElement.innerHTML = `Coupons clipped: ${clipped}`;
+          clippedCountElement.innerHTML = `Coupons clipped: ${clipped} / ${couponData.length}`;
+        }
+        if (progressBar) {
+          const percent = (clipped / couponData.length) * 100;
+          progressBar.style.width = `${percent}%`;
         }
 
         const button = document.getElementById(`couponAddBtn${coupon.offerId}`);
@@ -213,6 +254,8 @@ const clipCouponsUsingAPI = async () => {
 
   setTimeout(() => {
     document.body.removeChild(loader);
+    document.body.style.pointerEvents = "";
+
     alert(`${clipped} coupons clipped successfully!`);
 
     if (localStorage.getItem("abJ4uCoupons")) {
