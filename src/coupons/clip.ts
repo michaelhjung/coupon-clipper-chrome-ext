@@ -6,6 +6,12 @@ import {
 } from "../constants";
 import { executeScriptInActiveTab } from "../utils/chrome";
 
+/*****************************************************************************
+IMPORTANT:
+Much of the logic must be in-line rather than broken into helpers due to needing
+to run in the context of the page rather than the extension.
+*****************************************************************************/
+
 export const clipAllHandler = async (
   setClipping: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
