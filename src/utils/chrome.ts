@@ -1,4 +1,4 @@
-import { COUPON_PAGE_PATH, STORES } from "../constants";
+import { ALL_COUPON_PATHS, CouponPagePath, STORES } from "../constants";
 
 export const executeScriptInActiveTab = async (func: () => void) => {
   try {
@@ -16,11 +16,20 @@ export const executeScriptInActiveTab = async (func: () => void) => {
       return false;
     }
 
-    if (!tab.url.includes(COUPON_PAGE_PATH)) {
-      const tabHostname = new URL(tab.url).hostname;
+    const { hostname: tabHostname, pathname } = new URL(tab.url!);
+
+    const isValidCouponPagePath = Array.from(ALL_COUPON_PATHS).some(
+      (validPath) => pathname.startsWith(validPath)
+    );
+
+    if (!isValidCouponPagePath) {
+      const store = STORES.find((store) => tabHostname.includes(store.url));
+      const expectedPath = store?.couponPath || CouponPagePath.FORU;
+
       alert(
-        `Please make sure you're on the coupon page: https://${tabHostname}${COUPON_PAGE_PATH}`
+        `Please navigate to the store’s coupon page:\n\n https://${tabHostname}${expectedPath}`
       );
+
       return false;
     }
 

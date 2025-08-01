@@ -4,7 +4,7 @@ import "./App.css";
 
 import couponClipperLogo from "/imgs/logo_v2.png";
 
-import { CHROME_EXT_URL, COUPON_PAGE_PATH, STORES, VERSION } from "./constants";
+import { CHROME_EXT_URL, STORES, VERSION } from "./constants";
 import { clipAllHandler } from "./coupons/clip";
 import { countAllHandler } from "./coupons/count";
 import { loadAllHandler } from "./coupons/load";
@@ -107,7 +107,7 @@ function App() {
 
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
               chrome.tabs.create({
-                url: `https://www.${store.url}${COUPON_PAGE_PATH}`,
+                url: `https://www.${store.url}${store.couponPath}`,
                 windowId: tabs[0].windowId, // Ensure it opens in the same window
               });
             });
