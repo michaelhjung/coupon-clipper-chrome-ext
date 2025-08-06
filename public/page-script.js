@@ -10,25 +10,51 @@ setTimeout(function () {
     const correlationId = window.AB?.COMMON?.generateUUID?.();
     let user = window.userInfoServiceRefAL;
 
-    // Wait for the SWY_SHOP_TOKEN to be available in the user object
+    const MAX_ATTEMPTS = 10;
+    let attempts = 0;
+
+    const sendData = () => {
+      const data = {
+        source: "coupon-clipper",
+        type: "tokens",
+        payload: {
+          storeId,
+          clientId,
+          clientSecret,
+          correlationId,
+          user: JSON.parse(JSON.stringify(user)),
+        },
+      };
+      window.postMessage(data, "*");
+    };
+
     const waitForToken = () => {
-      if (user?.service?._userSession?.SWY_SHOP_TOKEN) {
-        // Token is available, send it
-        const data = {
-          source: "coupon-clipper",
-          type: "tokens",
-          payload: {
-            storeId,
-            clientId,
-            clientSecret,
-            correlationId,
-            user: JSON.parse(JSON.stringify(user)),
-          },
-        };
-        window.postMessage(data, "*");
-      } else {
-        // Token not available yet, check again in 100ms
+      const token = user?.service?._userSession?.SWY_SHOP_TOKEN;
+
+      if (token) {
+        sendData();
+      } else if (attempts++ < MAX_ATTEMPTS) {
         setTimeout(waitForToken, 100);
+      } else {
+        // Fallback: try to manually init session
+        user?.service
+          ?.initUserSession?.()
+          .then((session) => {
+            if (session?.SWY_SHOP_TOKEN) {
+              user.service._userSession = session;
+              sendData();
+            } else {
+              console.warn(
+                "[Coupon Clipper] Token not found even after fallback."
+              );
+            }
+          })
+          .catch((err) => {
+            console.error(
+              "[Coupon Clipper] Error calling initUserSession:",
+              err
+            );
+          });
       }
     };
 
