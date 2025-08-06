@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Coupon Clipper",
   "version": "1.3.2",
-  "description": "Conveniently clip digital grocery coupons with one click. Supports Albertsons-owned companies such as Safeway, Vons, Acme and other affiliated stores.",
+  "description": "Conveniently clip digital grocery coupons with one click. Supports Albertsons-owned companies (e.g., Safeway, Vons, Acme and others)",
   "permissions": ["storage", "scripting", "tabs", "activeTab"],
   "host_permissions": [
     "https://*.acmemarkets.com/*",
