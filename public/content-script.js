@@ -31,10 +31,7 @@ window.addEventListener("message", (event) => {
     "data-correlation-id",
     event.data.payload.correlationId
   );
-  dataElement.setAttribute(
-    "data-access-token",
-    event.data.payload.user?.service?._userSession?.SWY_SHOP_TOKEN
-  );
+  dataElement.setAttribute("data-access-token", event.data.payload.token);
 
   // Append the element to the body (or head)
   document.body.appendChild(dataElement);
