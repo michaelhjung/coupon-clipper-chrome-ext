@@ -5,7 +5,22 @@ export const loadAllHandler = async (
 ) => {
   setLoading(true);
 
-  const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+  const [tab] = await new Promise<chrome.tabs.Tab[]>((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      resolve(tabs);
+    });
+  });
+
+  if (!tab?.url) {
+    setLoading(false);
+    return alert("Cannot determine the active tab URL");
+  }
+  const isRaleys = tab.url.includes("raleys.com");
+
+  // const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+  const couponsLoaded = await executeScriptInActiveTab(
+    isRaleys ? clickRaleysLoadMore : clickLoadMoreButtons
+  );
   setLoading(false);
 
   if (couponsLoaded) alert("All coupons loaded!");
@@ -48,5 +63,24 @@ export const clickLoadMoreButtons = () => {
       console.info("No 'Load more' buttons found.");
       resolve();
     }
+  });
+};
+
+export const clickRaleysLoadMore = () => {
+  return new Promise<number>((resolve) => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window) return;
+      if (event.data?.type === "COUPON_CLIPPER_RALEYS_DONE") {
+        window.removeEventListener("message", handleMessage);
+        resolve(event.data.totalClicked);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    const trigger = document.getElementById("coupon-clipper-raleys-trigger");
+    if (!trigger) return resolve(0);
+
+    trigger.dispatchEvent(new CustomEvent("loadRaleysCoupons"));
   });
 };
