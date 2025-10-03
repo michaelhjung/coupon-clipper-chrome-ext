@@ -1,4 +1,4 @@
-import { clickLoadMoreButtons } from "./load";
+import { clickLoadMoreButtons, clickRaleysLoadMore } from "./load";
 import {
   DEFAULT_CLIENT_ID,
   DEFAULT_CLIENT_SECRET,
@@ -17,11 +17,158 @@ export const clipAllHandler = async (
 ) => {
   setClipping(true);
 
-  const couponsLoaded = await executeScriptInActiveTab(clickLoadMoreButtons);
+  const [tab] = await new Promise<chrome.tabs.Tab[]>((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      resolve(tabs);
+    });
+  });
+
+  if (!tab?.url) {
+    setClipping(false);
+    return alert("Cannot determine the active tab URL");
+  }
+
+  const isRaleys = tab.url.includes("raleys.com");
+
+  const couponsLoaded = await executeScriptInActiveTab(
+    isRaleys ? clickRaleysLoadMore : clickLoadMoreButtons
+  );
   if (!couponsLoaded) return setClipping(false);
 
-  await executeScriptInActiveTab(clipCouponsUsingAPI);
+  await executeScriptInActiveTab(
+    isRaleys ? clipRaleysCoupons : clipCouponsUsingAPI
+  );
+
   setClipping(false);
+};
+
+const clipRaleysCoupons = async () => {
+  let stopClipping = false;
+
+  // Build loader (reuse same loader as API)
+  const buildStyle = () => {
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes bounce {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-12px); }
+      }
+
+      .ellipsis-dot {
+        width: 6px;
+        height: 6px;
+        margin: 0 3px;
+        border-radius: 50%;
+        background-color: #ffffff;
+        animation: bounce 0.45s infinite alternate ease-in-out;
+        opacity: 0.85;
+      }
+
+      .ellipsis-dot:nth-child(1) { animation-delay: 0s; }
+      .ellipsis-dot:nth-child(2) { animation-delay: 0.1s; }
+      .ellipsis-dot:nth-child(3) { animation-delay: 0.2s; }
+    `;
+    return style;
+  };
+
+  const buildLoader = () => {
+    const loader = document.createElement("div");
+    loader.id = "clipping-loader";
+    loader.setAttribute("role", "alert");
+    loader.style.position = "fixed";
+    loader.style.top = "50%";
+    loader.style.left = "50%";
+    loader.style.transform = "translate(-50%, -50%)";
+    loader.style.padding = "24px 32px";
+    loader.style.backgroundColor = "rgba(20, 20, 20, 0.75)";
+    loader.style.color = "#fff";
+    loader.style.fontSize = "18px";
+    loader.style.fontWeight = "300";
+    loader.style.fontFamily =
+      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
+    loader.style.borderRadius = "12px";
+    loader.style.zIndex = "9001";
+    loader.style.textAlign = "center";
+    loader.style.boxShadow = "0 12px 28px rgba(0,0,0,0.35)";
+    loader.innerHTML = `
+      <p style="margin-bottom: 8px; line-height: 1.5;">Clipping in progress...<br>Please do not refresh the page.</p>
+      <p id="clipped-count" style="font-weight: 500; margin-bottom: 16px;" aria-live="polite">Coupons clipped: 0 / 0</p>
+      <div id="ellipsis-container" style="display: flex; justify-content: center;">
+        <div id="ellipsis-animation" style="display: inline-flex; justify-content: space-between; width: 50px;">
+          <span class="ellipsis-dot"></span>
+          <span class="ellipsis-dot"></span>
+          <span class="ellipsis-dot"></span>
+        </div>
+      </div>
+      <div style="background: rgba(255 255 255 / 0.2); border-radius: 8px; height: 16px; width: 320px; margin: 8px auto 12px;">
+        <div id="progress-bar" style="background: #4caf50; height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s ease;"></div>
+      </div>
+      <button id="stop-clipping-btn" style="
+        margin-top: 8px;
+        padding: 8px 16px;
+        border: none;
+        background-color: #ff4d4f;
+        color: white;
+        font-size: 14px;
+        border-radius: 6px;
+        cursor: pointer;
+      ">
+        Stop Clipping
+      </button>
+    `;
+    return loader;
+  };
+
+  const style = buildStyle();
+  const loader = buildLoader();
+  document.head.appendChild(style);
+  document.body.appendChild(loader);
+
+  document
+    .getElementById("stop-clipping-btn")
+    ?.addEventListener("click", () => {
+      stopClipping = true;
+      const btn = document.getElementById("stop-clipping-btn");
+      if (btn) btn.innerText = "Stopping...";
+    });
+
+  const clippedCountElement = document.getElementById("clipped-count");
+  const progressBar = document.getElementById("progress-bar");
+
+  // Get all "Clip" buttons
+  const buttons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("button")
+  ).filter(
+    (btn) => btn.querySelector("p")?.innerText.trim().toLowerCase() === "clip"
+  );
+
+  const total = buttons.length;
+  if (!total) {
+    loader.remove();
+    alert("No coupons found to clip on Raley's.");
+    return;
+  }
+
+  let clipped = 0;
+  for (const btn of buttons) {
+    if (stopClipping) break;
+
+    btn.click();
+    clipped++;
+
+    if (clippedCountElement) {
+      clippedCountElement.innerText = `Coupons clipped: ${clipped} / ${total}`;
+    }
+    if (progressBar) {
+      progressBar.style.width = `${(clipped / total) * 100}%`;
+    }
+
+    // small delay to avoid overwhelming the page
+    await new Promise((res) => setTimeout(res, 100));
+  }
+
+  loader.remove();
+  alert(`${clipped} coupons clipped successfully on Raley's!`);
 };
 
 const clipCouponsUsingAPI = async () => {
