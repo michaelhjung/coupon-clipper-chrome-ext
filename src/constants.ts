@@ -1,6 +1,6 @@
 import { generateUUID } from "./utils/general";
 
-export const VERSION = "1.3.4";
+export const VERSION = "1.4.0";
 
 export const CHROME_EXT_URL =
   "https://chromewebstore.google.com/detail/coupon-clipper/dihamlfidaeahaijeogelncpkpefhded";
@@ -13,6 +13,7 @@ export const DEFAULT_CORRELATION_ID = generateUUID();
 export enum CouponPagePath {
   FORU = "/foru/coupons-deals.html",
   LOYALTY = "/loyalty/coupons-deals",
+  SOMETHING_EXTRA = "/something-extra/offers-and-savings", // RALEY'S
 }
 export const ALL_COUPON_PATHS = new Set<string>(Object.values(CouponPagePath));
 
@@ -25,7 +26,7 @@ export const STORES = [
   {
     name: "Albertsons",
     url: "albertsons.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
   {
     name: "Andronico's",
@@ -40,7 +41,7 @@ export const STORES = [
   {
     name: "Carrs",
     url: "carrsqc.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
   {
     name: "Haggen",
@@ -50,7 +51,7 @@ export const STORES = [
   {
     name: "Jewel-Osco",
     url: "jewelosco.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
   {
     name: "Kings Food Markets",
@@ -60,17 +61,22 @@ export const STORES = [
   {
     name: "Pavilions",
     url: "pavilions.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
+  },
+  {
+    name: "Raley's",
+    url: "raleys.com",
+    couponPath: CouponPagePath.SOMETHING_EXTRA,
   },
   {
     name: "Randalls",
     url: "randalls.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
   {
     name: "Safeway",
     url: "safeway.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
   {
     name: "Shaw's",
@@ -85,11 +91,11 @@ export const STORES = [
   {
     name: "Tom Thumb",
     url: "tomthumb.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
   {
     name: "Vons",
     url: "vons.com",
-    couponPath: CouponPagePath.FORU,
+    couponPath: CouponPagePath.LOYALTY,
   },
 ];

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Coupon Clipper",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "description": "Conveniently clip digital grocery coupons with one click. Supports Albertsons-owned companies (e.g., Safeway, Vons, Acme and others)",
   "permissions": ["storage", "scripting", "tabs", "activeTab"],
   "host_permissions": [
@@ -14,6 +14,7 @@
     "https://*.jewelosco.com/*",
     "https://*.kingsfoodmarkets.com/*",
     "https://*.pavilions.com/*",
+    "https://*.raleys.com/*",
     "https://*.randalls.com/*",
     "https://*.safeway.com/*",
     "https://*.shaws.com/*",
@@ -34,6 +35,7 @@
         "https://*.jewelosco.com/*",
         "https://*.kingsfoodmarkets.com/*",
         "https://*.pavilions.com/*",
+        "https://*.raleys.com/*",
         "https://*.randalls.com/*",
         "https://*.safeway.com/*",
         "https://*.shaws.com/*",
@@ -55,6 +57,7 @@
         "https://*.jewelosco.com/*",
         "https://*.kingsfoodmarkets.com/*",
         "https://*.pavilions.com/*",
+        "https://*.raleys.com/*",
         "https://*.randalls.com/*",
         "https://*.safeway.com/*",
         "https://*.shaws.com/*",
