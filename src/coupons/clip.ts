@@ -135,7 +135,6 @@ const clipRaleysCoupons = async () => {
   const clippedCountElement = document.getElementById("clipped-count");
   const progressBar = document.getElementById("progress-bar");
 
-  // Get all "Clip" buttons
   const buttons = Array.from(
     document.querySelectorAll<HTMLButtonElement>("button")
   ).filter(

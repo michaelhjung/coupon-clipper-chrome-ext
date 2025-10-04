@@ -3,7 +3,7 @@ if (window.location.hostname.includes("raleys.com")) {
     console.log("[Coupon Clipper] Loading all Raley's coupons...");
 
     const delay = (ms) => new Promise((res) => setTimeout(res, ms));
-    const MAX_ATTEMPTS = 50; // safeguard
+    const MAX_ATTEMPTS = 20; // safeguard
     let attempts = 0;
     let totalClicked = 0;
 
