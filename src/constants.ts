@@ -64,11 +64,6 @@ export const STORES = [
     couponPath: CouponPagePath.LOYALTY,
   },
   {
-    name: "Raley's",
-    url: "raleys.com",
-    couponPath: CouponPagePath.SOMETHING_EXTRA,
-  },
-  {
     name: "Randalls",
     url: "randalls.com",
     couponPath: CouponPagePath.LOYALTY,
