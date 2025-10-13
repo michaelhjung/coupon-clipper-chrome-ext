@@ -1,6 +1,6 @@
 import { generateUUID } from "./utils/general";
 
-export const VERSION = "1.4.2";
+export const VERSION = "1.4.3";
 
 export const CHROME_EXT_URL =
   "https://chromewebstore.google.com/detail/coupon-clipper/dihamlfidaeahaijeogelncpkpefhded";
@@ -62,6 +62,11 @@ export const STORES = [
     name: "Pavilions",
     url: "pavilions.com",
     couponPath: CouponPagePath.LOYALTY,
+  },
+  {
+    name: "Raley's",
+    url: "raleys.com",
+    couponPath: CouponPagePath.SOMETHING_EXTRA,
   },
   {
     name: "Randalls",
