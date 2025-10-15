@@ -292,13 +292,28 @@ const clipCouponsUsingAPI = async () => {
         const hrefElement = card.querySelector(
           "a.coupon-card-offer-details[href*='offer-details']"
         );
-        const itemTypeMatch = hrefElement
-          ?.getAttribute("href")
-          ?.match(/\.([A-Z]{2})\.html/);
-        const offerPgm = itemTypeMatch ? itemTypeMatch[1] : "UNKNOWN";
+        const href = hrefElement?.getAttribute("href") || "";
 
+        // Try to match two-letter uppercase codes anywhere in the href
+        const itemTypeMatch = href.match(/([A-Z]{2})(?:\.html)?/);
+        const offerPgm = itemTypeMatch ? itemTypeMatch[1] : "SC";
+        const fallbackOfferPgms = ["SC", "MF"];
         const nameElement = card.querySelector("h5.cpn-title");
         const name = nameElement?.textContent?.trim() || "No Name Found";
+
+        if (!itemTypeMatch) {
+          console.warn(
+            `No offerPgm found in href "${href}", defaulting to SC/MF fallback`
+          );
+          fallbackOfferPgms.forEach((pgm) =>
+            coupons.push({
+              offerId,
+              offerPgm: pgm,
+              name,
+            })
+          );
+          return;
+        }
 
         coupons.push({
           offerId,
