@@ -297,13 +297,13 @@ const clipCouponsUsingAPI = async () => {
         // Try to match two-letter uppercase codes anywhere in the href
         const itemTypeMatch = href.match(/([A-Z]{2})(?:\.html)?/);
         const offerPgm = itemTypeMatch ? itemTypeMatch[1] : "SC";
-        const fallbackOfferPgms = ["SC", "MF"];
+        const fallbackOfferPgms = ["SC", "MF", "PD"];
         const nameElement = card.querySelector("h5.cpn-title");
         const name = nameElement?.textContent?.trim() || "No Name Found";
 
         if (!itemTypeMatch) {
           console.warn(
-            `No offerPgm found in href "${href}", defaulting to SC/MF fallback`
+            `[ coupon clipper ] No offerPgm found in href "${href}", defaulting to SC/MF fallback`
           );
           fallbackOfferPgms.forEach((pgm) =>
             coupons.push({
@@ -355,6 +355,10 @@ const clipCouponsUsingAPI = async () => {
     }
   };
   if (!couponData?.length) {
+    console.error(
+      "[ coupon clipper ] no coupons found, couponData:",
+      couponData
+    );
     handleNoCouponsFound();
     return;
   }
@@ -384,6 +388,9 @@ const clipCouponsUsingAPI = async () => {
     "x-swy-correlation-id": correlationId,
   };
 
+  console.info("[ coupon clipper ] storeId:", storeId);
+  console.info("[ coupon clipper ] header:", headers);
+
   const clipCoupons = async (
     url: string,
     headers: HeadersInit,
@@ -395,7 +402,7 @@ const clipCouponsUsingAPI = async () => {
 
     for (const coupon of couponData) {
       if (stopClipping) {
-        console.warn("Clipping stopped by user.");
+        console.warn("[ coupon clipper ] Clipping stopped by user.");
         break;
       }
 
@@ -422,6 +429,7 @@ const clipCouponsUsingAPI = async () => {
         });
 
         const result = await response.json();
+        console.info("[ coupon clipper ] clip result:", result);
 
         if (result?.items?.[0]?.status === 1) {
           clipped++;
@@ -455,10 +463,13 @@ const clipCouponsUsingAPI = async () => {
             }
           }
         } else {
-          console.warn(`❌ Failed to clip: ${coupon.name}`);
+          console.warn(`[ coupon clipper ] ❌ Failed to clip: ${coupon.name}`);
         }
       } catch (err) {
-        console.error(`💥 Error clipping coupon: ${coupon.name}`, err);
+        console.error(
+          `[ coupon clipper ] 💥 Error clipping coupon: ${coupon.name}`,
+          err
+        );
       }
     }
 
@@ -480,9 +491,11 @@ const clipCouponsUsingAPI = async () => {
 
     if (localStorage.getItem("abJ4uCoupons")) {
       localStorage.removeItem("abJ4uCoupons");
-      console.info("Cleared localStorage key: abJ4uCoupons");
+      console.info("[ coupon clipper ] Cleared localStorage key: abJ4uCoupons");
     } else {
-      console.info("No localStorage key 'abJ4uCoupons' found to clear.");
+      console.info(
+        "[ coupon clipper ] No localStorage key 'abJ4uCoupons' found to clear."
+      );
     }
   }, 1000);
 };
