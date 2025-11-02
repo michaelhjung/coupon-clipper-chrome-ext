@@ -4,7 +4,7 @@ const script = document.createElement("script");
 script.src = chrome.runtime.getURL("page-script.js");
 
 script.onload = () => {
-  console.info("Page script loaded successfully!");
+  console.info("[ coupon clipper ] Page script loaded successfully!");
   script.remove();
 };
 
@@ -14,7 +14,10 @@ script.onload = () => {
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
   if (event.data?.source === "coupon-clipper") {
-    console.info("Got data from page context:", event.data?.payload);
+    console.info(
+      "[ coupon clipper ] Got data from page context:",
+      event.data?.payload
+    );
   }
 
   // Create a hidden element to store the data

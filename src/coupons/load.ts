@@ -41,10 +41,10 @@ export const clickLoadMoreButtons = () => {
           behavior: "smooth",
         });
 
-        console.info("Clicked 'Load more' button.");
+        console.info("[ coupon clipper ] Clicked 'Load more' button.");
       } else {
         observer.disconnect();
-        console.info("No more 'Load more' buttons found.");
+        console.info("[ coupon clipper ] No more 'Load more' buttons found.");
         resolve();
       }
     });
@@ -57,10 +57,10 @@ export const clickLoadMoreButtons = () => {
 
     if (initialButton) {
       initialButton.click();
-      console.info("Clicked initial 'Load more' button.");
+      console.info("[ coupon clipper ] Clicked initial 'Load more' button.");
     } else {
       observer.disconnect();
-      console.info("No 'Load more' buttons found.");
+      console.info("[ coupon clipper ] No 'Load more' buttons found.");
       resolve();
     }
   });

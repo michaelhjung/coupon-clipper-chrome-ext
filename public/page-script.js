@@ -1,6 +1,6 @@
 if (window.location.hostname.includes("raleys.com")) {
   window.couponClipperLoadRaleysAll = async function () {
-    console.log("[Coupon Clipper] Loading all Raley's coupons...");
+    console.info("[Coupon Clipper] Loading all Raley's coupons...");
 
     const delay = (ms) => new Promise((res) => setTimeout(res, ms));
     const MAX_ATTEMPTS = 20; // safeguard
@@ -15,13 +15,13 @@ if (window.location.hostname.includes("raleys.com")) {
 
       if (!button) break;
 
-      console.log("🔘 Clicking 'Load More'...");
+      console.info("[ coupon clipper ] 🔘 Clicking 'Load More'...");
       button.click();
       totalClicked++;
       await delay(500);
     }
 
-    console.log(`[Coupon Clipper] Done loading all Raley's coupons.`);
+    console.info(`[Coupon Clipper] Done loading all Raley's coupons.`);
 
     window.postMessage(
       { type: "COUPON_CLIPPER_RALEYS_DONE", totalClicked },
