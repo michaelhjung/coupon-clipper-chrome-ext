@@ -173,6 +173,18 @@ const clipRaleysCoupons = async () => {
 const clipCouponsUsingAPI = async () => {
   const dataElement = document.getElementById("coupon-clipper-data");
   if (!dataElement) throw new Error("There was a problem clipping the coupons");
+
+  const debugInfo = {
+    storeId: dataElement.getAttribute("data-store-id"),
+    clientId: dataElement.getAttribute("data-client-id"),
+    clientSecret: dataElement.getAttribute("data-client-secret"),
+    correlationId: dataElement.getAttribute("data-correlation-id"),
+    accessTokenPreview: dataElement.getAttribute("data-access-token") || "",
+    couponButtonsFound: document.querySelectorAll('button[id^="couponAddBtn"]')
+      .length,
+  };
+  console.info("[ coupon clipper ] debug info:", debugInfo);
+
   let stopClipping = false;
 
   const buildStyle = () => {
@@ -297,7 +309,13 @@ const clipCouponsUsingAPI = async () => {
         // Try to match two-letter uppercase codes anywhere in the href
         const itemTypeMatch = href.match(/([A-Z]{2})(?:\.html)?/);
         const offerPgm = itemTypeMatch ? itemTypeMatch[1] : "SC";
-        const fallbackOfferPgms = ["SC", "MF", "PD"];
+        const fallbackOfferPgms = [
+          "MF",
+          "SC",
+          "CC",
+          "PD",
+          "manufacturerCoupons",
+        ];
         const nameElement = card.querySelector("h5.cpn-title");
         const name = nameElement?.textContent?.trim() || "No Name Found";
 

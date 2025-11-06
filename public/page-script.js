@@ -1,6 +1,6 @@
-if (window.location.hostname.includes("raleys.com")) {
+if (window?.location?.hostname?.includes("raleys.com")) {
   window.couponClipperLoadRaleysAll = async function () {
-    console.info("[Coupon Clipper] Loading all Raley's coupons...");
+    console.info("[ coupon clipper ] Loading all Raley's coupons...");
 
     const delay = (ms) => new Promise((res) => setTimeout(res, ms));
     const MAX_ATTEMPTS = 20; // safeguard
@@ -21,7 +21,7 @@ if (window.location.hostname.includes("raleys.com")) {
       await delay(500);
     }
 
-    console.info(`[Coupon Clipper] Done loading all Raley's coupons.`);
+    console.info(`[ coupon clipper ] Done loading all Raley's coupons.`);
 
     window.postMessage(
       { type: "COUPON_CLIPPER_RALEYS_DONE", totalClicked },
@@ -40,9 +40,11 @@ if (window.location.hostname.includes("raleys.com")) {
     window.couponClipperLoadRaleysAll();
   });
 } else {
+  // Clear known localStorage key if present
   if (localStorage.getItem("abJ4uCoupons"))
     localStorage.removeItem("abJ4uCoupons");
 
+  // Small delay so page scripts can begin initializing
   setTimeout(function () {
     try {
       const storeId =
@@ -53,8 +55,63 @@ if (window.location.hostname.includes("raleys.com")) {
       const correlationId = user?.UUID || window.AB?.COMMON?.generateUUID?.();
       const userServiceRef = window.userInfoServiceRefAL;
 
-      const MAX_ATTEMPTS = 10;
-      let attempts = 0;
+      // Robust waiter that polls for token, but uses requestAnimationFrame for lower CPU usage;
+      // falls back to calling initUserSession (and respects a timeout)
+      const waitForToken = async (timeoutMs = 5000) => {
+        const start = Date.now();
+
+        const tryGetToken = () => {
+          const freshUser = window.AB?.userInfo || user;
+          const token =
+            freshUser?.SWY_SHOP_TOKEN ||
+            userServiceRef?.service?._userSession?.SWY_SHOP_TOKEN;
+          return token;
+        };
+
+        // fast path
+        const existing = tryGetToken();
+        if (existing) return existing;
+
+        // Poll using requestAnimationFrame but respect timeout and occasional setTimeout
+        return await new Promise((resolve) => {
+          let rafId = null;
+          let intervalId = null;
+
+          const cleanup = () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            if (intervalId) clearInterval(intervalId);
+          };
+
+          const check = () => {
+            const token = tryGetToken();
+            if (token) {
+              cleanup();
+              return resolve(token);
+            }
+            if (Date.now() - start > timeoutMs) {
+              cleanup();
+              return resolve(null); // resolve null to let caller decide fallback
+            }
+            rafId = requestAnimationFrame(check);
+          };
+
+          // Also do an interval check at a slower cadence to catch things
+          intervalId = setInterval(() => {
+            const token = tryGetToken();
+            if (token) {
+              cleanup();
+              return resolve(token);
+            }
+            if (Date.now() - start > timeoutMs) {
+              cleanup();
+              return resolve(null);
+            }
+          }, 200);
+
+          // kick off RAF checks
+          rafId = requestAnimationFrame(check);
+        });
+      };
 
       const sendData = (safewayShopToken) => {
         const data = {
@@ -71,41 +128,55 @@ if (window.location.hostname.includes("raleys.com")) {
         window.postMessage(data, "*");
       };
 
-      const waitForToken = () => {
-        const token =
-          user?.SWY_SHOP_TOKEN ||
-          userServiceRef?.service?._userSession?.SWY_SHOP_TOKEN;
+      (async () => {
+        try {
+          const token = await waitForToken(5000); // 5s timeout
+          if (token) {
+            sendData(token);
+            return;
+          }
 
-        if (token) {
-          sendData(token);
-        } else if (attempts++ < MAX_ATTEMPTS) {
-          setTimeout(waitForToken, 100);
-        } else {
-          // Fallback: try to manually init session
-          user?.service
-            ?.initUserSession?.()
-            .then((session) => {
+          // If token wasn't found, try to init a session as a fallback (still within a timeout)
+          if (user?.service?.initUserSession) {
+            try {
+              const sessionPromise = user.service.initUserSession();
+              // give the init a max of 5s
+              const session = await Promise.race([
+                sessionPromise,
+                new Promise((res) => setTimeout(() => res(null), 5000)),
+              ]);
               if (session?.SWY_SHOP_TOKEN) {
+                // ensure the local structure mirrors what the page expects
                 user.service._userSession = session;
                 sendData(session.SWY_SHOP_TOKEN);
+                return;
               } else {
                 console.warn(
-                  "[Coupon Clipper] Token not found even after fallback."
+                  "[ coupon clipper ] initUserSession did not return SWY_SHOP_TOKEN"
                 );
               }
-            })
-            .catch((err) => {
+            } catch (err) {
               console.error(
-                "[Coupon Clipper] Error calling initUserSession:",
+                "[ coupon clipper ] Error calling initUserSession:",
                 err
               );
-            });
-        }
-      };
+            }
+          }
 
-      waitForToken();
+          // Final attempt: if still no token, send what we have (no token) but mark it explicitly
+          console.warn(
+            "[ coupon clipper ] Token not found within timeout. Sending partial payload."
+          );
+          sendData(null);
+        } catch (err) {
+          console.error(
+            "[ coupon clipper ] Error in token extraction flow:",
+            err
+          );
+        }
+      })();
     } catch (err) {
-      console.error("[Coupon Clipper] Error extracting variables:", err);
+      console.error("[ coupon clipper ] Error extracting variables:", err);
     }
   }, 500);
 }
