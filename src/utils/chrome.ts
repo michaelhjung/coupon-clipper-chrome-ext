@@ -24,7 +24,7 @@ export const executeScriptInActiveTab = async (func: () => void) => {
     return true;
   } catch (error) {
     console.error(
-      "[ coupon clipper ] Failed to execute script in active tab:",
+      "[ coupon clipper ] 💥 Failed to execute script in active tab:",
       error
     );
     return false;

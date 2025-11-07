@@ -374,7 +374,7 @@ const clipCouponsUsingAPI = async () => {
   };
   if (!couponData?.length) {
     console.error(
-      "[ coupon clipper ] No coupons found, couponData:",
+      "[ coupon clipper ] 💥 No coupons found, couponData:",
       couponData
     );
     handleNoCouponsFound();

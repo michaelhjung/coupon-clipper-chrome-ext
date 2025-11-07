@@ -47,13 +47,43 @@ if (window?.location?.hostname?.includes("raleys.com")) {
   // Small delay so page scripts can begin initializing
   setTimeout(function () {
     try {
-      const storeId =
-        typeof window.getStoreId === "function" ? window.getStoreId() : null;
+      const user = window.AB?.userInfo;
+      const userServiceRef = window.userInfoServiceRefAL;
       const { clientId, clientSecret } =
         window.SWY?.CONFIGSERVICE?.datapowerConfig || {};
-      const user = window.AB?.userInfo;
       const correlationId = user?.UUID || window.AB?.COMMON?.generateUUID?.();
-      const userServiceRef = window.userInfoServiceRefAL;
+
+      const getStoreIdSafe = () => {
+        const getters = [
+          () => user?.j4u?.storeId,
+          () => user?.branchId,
+          () => userServiceRef?.service?.userInfo?.j4u?.storeId,
+          () => userServiceRef?.service?.userInfo?.branchId,
+          () =>
+            typeof window.getStoreId === "function"
+              ? window.getStoreId()
+              : null,
+        ];
+
+        for (const get of getters) {
+          try {
+            const val = get();
+            if (val) return String(val).trim();
+          } catch (err) {
+            console.warn(
+              "[ coupon clipper ] Error checking storeId candidate:",
+              err
+            );
+          }
+        }
+
+        console.error(
+          "[ coupon clipper ] 💥 storeId was not found, using 908 as a fallback"
+        );
+        return "908";
+      };
+
+      const storeId = getStoreIdSafe();
 
       // Robust waiter that polls for token, but uses requestAnimationFrame for lower CPU usage;
       // falls back to calling initUserSession (and respects a timeout)
@@ -114,17 +144,27 @@ if (window?.location?.hostname?.includes("raleys.com")) {
       };
 
       const sendData = (safewayShopToken) => {
+        const payload = {
+          storeId,
+          clientId,
+          clientSecret,
+          correlationId,
+          token: safewayShopToken,
+        };
+
+        Object.entries(payload).forEach(([key, value]) => {
+          if (!value)
+            console.error(
+              `[ coupon clipper ] 💥 ${key} was not found or is invalid (${value}), sending anyway`
+            );
+        });
+
         const data = {
           source: "coupon-clipper",
           type: "tokens",
-          payload: {
-            storeId,
-            clientId,
-            clientSecret,
-            correlationId,
-            token: safewayShopToken,
-          },
+          payload,
         };
+
         window.postMessage(data, "*");
       };
 
@@ -157,7 +197,7 @@ if (window?.location?.hostname?.includes("raleys.com")) {
               }
             } catch (err) {
               console.error(
-                "[ coupon clipper ] Error calling initUserSession:",
+                "[ coupon clipper ] 💥 Error calling initUserSession:",
                 err
               );
             }
@@ -176,7 +216,7 @@ if (window?.location?.hostname?.includes("raleys.com")) {
         }
       })();
     } catch (err) {
-      console.error("[ coupon clipper ] Error extracting variables:", err);
+      console.error("[ coupon clipper ] 💥 Error extracting variables:", err);
     }
   }, 500);
 }
