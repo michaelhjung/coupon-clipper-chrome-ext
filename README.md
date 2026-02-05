@@ -19,6 +19,6 @@ https://github.com/user-attachments/assets/3fb500ec-09f0-4925-affc-e5c97e226df7
 [ ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-Copyright © 2024-2025 Michael Jung. All rights reserved.
+Copyright © 2024-2026 Michael Jung. All rights reserved.
 
 </div>
