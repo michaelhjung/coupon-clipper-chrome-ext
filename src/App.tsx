@@ -35,14 +35,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [clipping, setClipping] = useState(false);
   const [counting, setCounting] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
   const [couponClipTally, setCouponClipTally] = useState<CouponClipTally>({});
   const [clipRateLimitDelay, setClipRateLimitDelayState] = useState(
-    DEFAULT_CLIP_RATE_LIMIT_DELAY_MS
+    DEFAULT_CLIP_RATE_LIMIT_DELAY_MS,
   );
 
   useEffect(() => {
-    // load any previously selected store
     const chromeLocalStorage = chrome?.storage?.local;
     if (chromeLocalStorage) {
       chromeLocalStorage.get(["selectedStore"], (result) => {
@@ -67,7 +65,7 @@ function App() {
         alert(
           `There ${message.count === 1 ? "is" : "are"} ${message.count} ${
             message.count === 1 ? "coupon" : "coupons"
-          } available to clip!`
+          } available to clip!`,
         );
       }
     };
@@ -76,7 +74,7 @@ function App() {
 
     const handleStorageChange = (
       changes: Record<string, chrome.storage.StorageChange>,
-      areaName: string
+      areaName: string,
     ) => {
       if (areaName !== "local") return;
 
@@ -87,8 +85,8 @@ function App() {
       if (changes[CLIP_RATE_LIMIT_DELAY_KEY]) {
         setClipRateLimitDelayState(
           normalizeClipRateLimitDelay(
-            changes[CLIP_RATE_LIMIT_DELAY_KEY].newValue
-          )
+            changes[CLIP_RATE_LIMIT_DELAY_KEY].newValue,
+          ),
         );
       }
     };
@@ -108,7 +106,7 @@ function App() {
 
   const totalCouponsClipped = couponClipTallyEntries.reduce(
     (total, { count }) => total + count,
-    0
+    0,
   );
   const clipRateLimitIsDefault =
     clipRateLimitDelay === DEFAULT_CLIP_RATE_LIMIT_DELAY_MS;
@@ -120,16 +118,10 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center">
-      <div>
-        <img
-          src={couponClipperLogo}
-          className="logo"
-          alt="Coupon Clipper logo"
-        />
-      </div>
+    <div className="flex w-[360px] max-w-full flex-col items-center">
+      <img src={couponClipperLogo} className="logo" alt="Coupon Clipper logo" />
 
-      <h1 className="text-3xl pt-2 pb-1">Coupon Clipper</h1>
+      <h1 className="text-2xl font-semibold">Coupon Clipper</h1>
 
       <small>
         <strong>Version:</strong>{" "}
@@ -143,11 +135,13 @@ function App() {
         </a>
       </small>
 
-      <div className="mt-6">
-        <label htmlFor="storeSelect">Go To:</label>
+      <div className="mt-5 flex w-full items-center gap-2">
+        <label className="shrink-0 text-sm font-semibold" htmlFor="storeSelect">
+          Go To
+        </label>
         <select
           id="storeSelect"
-          className="m-2 p-2"
+          className="min-w-0 flex-1 rounded-md border border-slate-500/30 bg-transparent p-2"
           value={selectedStore}
           onChange={(e) => {
             const value = e.target.value;
@@ -170,7 +164,7 @@ function App() {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
               chrome.tabs.create({
                 url: `https://www.${store.url}${store.couponPath}`,
-                windowId: tabs[0].windowId, // Ensure it opens in the same window
+                windowId: tabs[0].windowId,
               });
             });
           }}
@@ -179,95 +173,103 @@ function App() {
         </button>
       </div>
 
-      <div className="flex">
-        <div className="card">
-          <button
-            onClick={() => loadAllHandler(setLoading)}
-            disabled={loading || clipping}
-          >
-            {loading ? "Loading..." : "Load All"}
-          </button>
-        </div>
-        <div className="card">
-          <button
-            onClick={() => countAllHandler(setCounting)}
-            disabled={counting || clipping}
-          >
-            {counting ? "Counting..." : "Count Available"}
-          </button>
-        </div>
-        <div className="card">
-          <button
-            onClick={() => clipAllHandler(setClipping)}
-            disabled={clipping}
-          >
-            {clipping ? "Clipping..." : "Clip All"}
-          </button>
-        </div>
+      <div className="mt-4 grid w-full grid-cols-3 gap-2">
+        <button
+          className="min-h-11 px-2 text-sm"
+          onClick={() => loadAllHandler(setLoading)}
+          disabled={loading || clipping}
+        >
+          {loading ? "Loading..." : "Load All"}
+        </button>
+        <button
+          className="min-h-11 px-2 text-sm"
+          onClick={() => countAllHandler(setCounting)}
+          disabled={counting || clipping}
+        >
+          {counting ? "Counting..." : "Count"}
+        </button>
+        <button
+          className="min-h-11 px-2 text-sm"
+          onClick={() => clipAllHandler(setClipping)}
+          disabled={clipping}
+        >
+          {clipping ? "Clipping..." : "Clip All"}
+        </button>
       </div>
 
-      <section className="my-5 w-full max-w-sm rounded-lg border border-slate-500/20 bg-slate-500/5 p-4 text-left shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold leading-tight">
-              Coupons Clipped
-            </h2>
-            <p className="mt-1 text-xs opacity-70">Lifetime total by store</p>
-          </div>
-          <strong className="rounded-md bg-emerald-500/15 px-3 py-1 text-lg leading-none text-emerald-500">
-            {totalCouponsClipped}
-          </strong>
-        </div>
-
-        {couponClipTallyEntries.length ? (
-          <ul className="mt-4 divide-y divide-slate-500/20">
-            {couponClipTallyEntries.map(({ storeName, count }) => (
-              <li
-                key={storeName}
-                className="flex items-center justify-between gap-4 py-2 text-sm"
-              >
-                <span>{storeName}</span>
-                <span className="font-semibold">{count}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 rounded-md border border-dashed border-slate-500/25 px-3 py-4 text-center text-sm opacity-75">
-            No coupons clipped yet.
+      <section className="mt-4 grid w-full grid-cols-2 gap-2 rounded-lg border border-slate-500/20 bg-slate-500/5 p-3 text-left shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase opacity-60">
+            Total Clipped
           </p>
-        )}
+          <p className="mt-1 text-2xl font-semibold leading-none">
+            <span className="text-emerald-500">{totalCouponsClipped}</span>{" "}
+            <span className="ml-1 text-sm font-medium opacity-70">{`coupon${totalCouponsClipped === 1 ? "" : "s"}`}</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase opacity-60">
+            Clip Rate
+          </p>
+          <p className="mt-1 text-2xl font-semibold leading-none">
+            {clipRateLimitDelay}
+            <span className="ml-1 text-sm font-medium opacity-70">ms</span>
+          </p>
+        </div>
       </section>
 
-      <section className="mb-5 w-full max-w-sm rounded-lg border border-slate-500/20 bg-slate-500/5 p-4 text-left shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold leading-tight">Clip Rate</h2>
-            <p className="mt-1 text-xs opacity-70">Delay between coupons</p>
-          </div>
-          {clipRateLimitIsDefault && (
-            <span className="rounded-md bg-slate-500/10 px-2 py-1 text-xs font-semibold">
-              Default
-            </span>
+      <details className="mt-3 w-full rounded-lg border border-slate-500/20 bg-slate-500/5 text-left shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-sm font-semibold">
+          Clipped Count by Store
+          <span className="text-xs font-medium opacity-60">
+            {couponClipTallyEntries.length || "None"}
+          </span>
+        </summary>
+
+        <div className="border-t border-slate-500/20 px-4 pb-4 pt-2">
+          {couponClipTallyEntries.length ? (
+            <ul className="divide-y divide-slate-500/20">
+              {couponClipTallyEntries.map(({ storeName, count }) => (
+                <li
+                  key={storeName}
+                  className="flex items-center justify-between gap-4 py-2 text-sm"
+                >
+                  <span>{storeName}</span>
+                  <span className="font-semibold">{count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rounded-md border border-dashed border-slate-500/25 px-3 py-4 text-center text-sm opacity-75">
+              No coupons clipped yet.
+            </p>
           )}
         </div>
+      </details>
 
-        <div className="mt-4 flex items-center gap-3">
-          <input
-            aria-label="Delay between coupon clips"
-            className="min-w-0 flex-1"
-            type="range"
-            min={MIN_CLIP_RATE_LIMIT_DELAY_MS}
-            max={MAX_CLIP_RATE_LIMIT_DELAY_MS}
-            step={CLIP_RATE_LIMIT_DELAY_STEP_MS}
-            value={clipRateLimitDelay}
-            onChange={(event) =>
-              updateClipRateLimitDelay(Number(event.target.value))
-            }
-          />
-          <label className="flex shrink-0 items-center gap-2 text-sm">
+      <details className="mt-2 w-full rounded-lg border border-slate-500/20 bg-slate-500/5 text-left shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-sm font-semibold">
+          Clip Rate
+          <span className="text-xs font-medium opacity-60">
+            {clipRateLimitIsDefault ? "Default" : `${clipRateLimitDelay} ms`}
+          </span>
+        </summary>
+
+        <div className="border-t border-slate-500/20 px-4 pb-4 pt-3">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-xs opacity-70">Delay between coupons</p>
+            {clipRateLimitIsDefault && (
+              <span className="rounded-md bg-slate-500/10 px-2 py-1 text-xs font-semibold">
+                Default
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
             <input
-              className="w-20 rounded-md border border-slate-500/30 bg-transparent px-2 py-1 text-right"
-              type="number"
+              aria-label="Delay between coupon clips"
+              className="min-w-0 flex-1"
+              type="range"
               min={MIN_CLIP_RATE_LIMIT_DELAY_MS}
               max={MAX_CLIP_RATE_LIMIT_DELAY_MS}
               step={CLIP_RATE_LIMIT_DELAY_STEP_MS}
@@ -276,59 +278,50 @@ function App() {
                 updateClipRateLimitDelay(Number(event.target.value))
               }
             />
-            ms
-          </label>
+            <label className="flex shrink-0 items-center gap-2 text-sm">
+              <input
+                className="w-20 rounded-md border border-slate-500/30 bg-transparent px-2 py-1 text-right"
+                type="number"
+                min={MIN_CLIP_RATE_LIMIT_DELAY_MS}
+                max={MAX_CLIP_RATE_LIMIT_DELAY_MS}
+                step={CLIP_RATE_LIMIT_DELAY_STEP_MS}
+                value={clipRateLimitDelay}
+                onChange={(event) =>
+                  updateClipRateLimitDelay(Number(event.target.value))
+                }
+              />
+              ms
+            </label>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3 text-xs opacity-75">
+            <span>{MIN_CLIP_RATE_LIMIT_DELAY_MS} ms</span>
+            <span>{MAX_CLIP_RATE_LIMIT_DELAY_MS} ms</span>
+          </div>
+
+          <button
+            className="mt-4 w-full"
+            disabled={clipRateLimitIsDefault}
+            onClick={() => resetClipRateLimitDelay()}
+          >
+            Reset to Default
+          </button>
         </div>
+      </details>
 
-        <div className="mt-3 flex items-center justify-between gap-3 text-xs opacity-75">
-          <span>{MIN_CLIP_RATE_LIMIT_DELAY_MS} ms</span>
-          <span>{MAX_CLIP_RATE_LIMIT_DELAY_MS} ms</span>
-        </div>
-
-        <button
-          className="mt-4 w-full"
-          disabled={clipRateLimitIsDefault}
-          onClick={() => resetClipRateLimitDelay()}
-        >
-          Reset to Default
-        </button>
-      </section>
-
-      <div className="mt-1">
-        <button onClick={() => setShowInstructions(!showInstructions)}>
-          {showInstructions ? "Hide Instructions" : "Show Instructions"}
-        </button>
-        {showInstructions && (
-          <ol className="list-decimal mt-2 text-left">
-            <li>
-              Navigate to the coupon page for the store you want. Make sure
-              you're logged in.
-            </li>
-            <li>
-              <div>
-                (Optional) Click "Load All" to load all coupons on the page.
-              </div>
-              <div>
-                <small>
-                  <strong>*Note</strong>: clicking "Clip All" will automatically
-                  load all coupons for you before clipping them.
-                </small>
-              </div>
-            </li>
-            <li>
-              <div>Click "Clip All" to clip all loaded coupons.</div>
-              <div>
-                <small>
-                  <strong>*IMPORTANT</strong>: Do NOT close the tab too early or
-                  refresh the page. Wait until you see the alert message that
-                  says: "X coupons clipped successfully!"
-                </small>
-              </div>
-            </li>
-            <li>Sit back, and watch the magic happen.</li>
-          </ol>
-        )}
-      </div>
+      <details className="mt-2 w-full rounded-lg border border-slate-500/20 bg-slate-500/5 text-left shadow-sm">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold">
+          Instructions
+        </summary>
+        <ol className="list-decimal space-y-2 border-t border-slate-500/20 px-8 pb-4 pt-3 text-sm">
+          <li>
+            Navigate to the coupon page for the store you want. Make sure you're
+            logged in.
+          </li>
+          <li>Click "Load All" to load all coupons on the page.</li>
+          <li>Click "Clip All" and wait for the success message.</li>
+        </ol>
+      </details>
     </div>
   );
 }

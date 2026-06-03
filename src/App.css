@@ -1,19 +1,19 @@
 #root {
-  max-width: 1280px;
+  max-width: 420px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.25rem;
   text-align: center;
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  height: 4.5em;
+  padding: 0.5em;
   will-change: filter;
   transition: filter 300ms;
 }
 
 .card {
-  padding: 2em;
+  padding: 0.5em;
 }
 
 .read-the-docs {
