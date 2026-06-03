@@ -1,4 +1,5 @@
 import { clickLoadMoreButtons, clickRaleysLoadMore } from "./load";
+import { getClipRateLimitDelay } from "./settings";
 import { COUPON_CLIP_TALLY_KEY, getStoreNameFromUrl } from "./tally";
 import {
   DEFAULT_CLIENT_ID,
@@ -31,6 +32,7 @@ export const clipAllHandler = async (
 
   const isRaleys = tab.url.includes("raleys.com");
   const storeName = getStoreNameFromUrl(tab.url);
+  const clipRateLimitDelay = await getClipRateLimitDelay();
 
   const couponsLoaded = await executeScriptInActiveTab(
     isRaleys ? clickRaleysLoadMore : clickLoadMoreButtons
@@ -39,7 +41,9 @@ export const clipAllHandler = async (
 
   await executeScriptInActiveTab(
     isRaleys ? clipRaleysCoupons : clipCouponsUsingAPI,
-    storeName ? [storeName, COUPON_CLIP_TALLY_KEY] : []
+    storeName
+      ? [storeName, COUPON_CLIP_TALLY_KEY, String(clipRateLimitDelay)]
+      : []
   );
 
   setClipping(false);
@@ -47,9 +51,12 @@ export const clipAllHandler = async (
 
 const clipRaleysCoupons = async (
   storeName = "Unknown Store",
-  couponClipTallyKey = "couponClipTally"
+  couponClipTallyKey = "couponClipTally",
+  clipRateLimitDelay = "250"
 ) => {
   let stopClipping = false;
+  const delayBetweenClips = Math.max(0, Number(clipRateLimitDelay) || 0);
+  const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   const incrementCouponClipTally = async () => {
     await new Promise<void>((resolve) => {
@@ -192,8 +199,7 @@ const clipRaleysCoupons = async (
       progressBar.style.width = `${(clipped / total) * 100}%`;
     }
 
-    // small delay to avoid overwhelming the page
-    await new Promise((res) => setTimeout(res, 100));
+    await wait(delayBetweenClips);
   }
 
   loader.remove();
@@ -203,10 +209,14 @@ const clipRaleysCoupons = async (
 
 const clipCouponsUsingAPI = async (
   storeName = "Unknown Store",
-  couponClipTallyKey = "couponClipTally"
+  couponClipTallyKey = "couponClipTally",
+  clipRateLimitDelay = "250"
 ) => {
   const dataElement = document.getElementById("coupon-clipper-data");
   if (!dataElement) throw new Error("There was a problem clipping the coupons");
+
+  const delayBetweenClips = Math.max(0, Number(clipRateLimitDelay) || 0);
+  const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   const debugInfo = {
     storeId: dataElement.getAttribute("data-store-id"),
@@ -541,6 +551,8 @@ const clipCouponsUsingAPI = async (
         } else {
           console.warn(`[ coupon clipper ] ❌ Failed to clip: ${coupon.name}`);
         }
+
+        await wait(delayBetweenClips);
       } catch (err) {
         console.error(
           `[ coupon clipper ] 💥 Error clipping coupon: ${coupon.name}`,

@@ -9,6 +9,17 @@ import { clipAllHandler } from "./coupons/clip";
 import { countAllHandler } from "./coupons/count";
 import { loadAllHandler } from "./coupons/load";
 import {
+  CLIP_RATE_LIMIT_DELAY_KEY,
+  CLIP_RATE_LIMIT_DELAY_STEP_MS,
+  DEFAULT_CLIP_RATE_LIMIT_DELAY_MS,
+  getClipRateLimitDelay,
+  MAX_CLIP_RATE_LIMIT_DELAY_MS,
+  MIN_CLIP_RATE_LIMIT_DELAY_MS,
+  normalizeClipRateLimitDelay,
+  resetClipRateLimitDelay,
+  setClipRateLimitDelay,
+} from "./coupons/settings";
+import {
   COUPON_CLIP_TALLY_KEY,
   CouponClipTally,
   getCouponClipTally,
@@ -26,6 +37,9 @@ function App() {
   const [counting, setCounting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [couponClipTally, setCouponClipTally] = useState<CouponClipTally>({});
+  const [clipRateLimitDelay, setClipRateLimitDelayState] = useState(
+    DEFAULT_CLIP_RATE_LIMIT_DELAY_MS
+  );
 
   useEffect(() => {
     // load any previously selected store
@@ -35,6 +49,7 @@ function App() {
         if (result.selectedStore) setSelectedStore(result.selectedStore);
       });
       getCouponClipTally().then(setCouponClipTally);
+      getClipRateLimitDelay().then(setClipRateLimitDelayState);
     }
 
     const handleMessage = (message: MessageType) => {
@@ -64,9 +79,18 @@ function App() {
       areaName: string
     ) => {
       if (areaName !== "local") return;
-      if (!changes[COUPON_CLIP_TALLY_KEY]) return;
 
-      setCouponClipTally(changes[COUPON_CLIP_TALLY_KEY].newValue || {});
+      if (changes[COUPON_CLIP_TALLY_KEY]) {
+        setCouponClipTally(changes[COUPON_CLIP_TALLY_KEY].newValue || {});
+      }
+
+      if (changes[CLIP_RATE_LIMIT_DELAY_KEY]) {
+        setClipRateLimitDelayState(
+          normalizeClipRateLimitDelay(
+            changes[CLIP_RATE_LIMIT_DELAY_KEY].newValue
+          )
+        );
+      }
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -86,6 +110,14 @@ function App() {
     (total, { count }) => total + count,
     0
   );
+  const clipRateLimitIsDefault =
+    clipRateLimitDelay === DEFAULT_CLIP_RATE_LIMIT_DELAY_MS;
+
+  const updateClipRateLimitDelay = (delayMs: number) => {
+    const normalizedDelay = normalizeClipRateLimitDelay(delayMs);
+    setClipRateLimitDelayState(normalizedDelay);
+    setClipRateLimitDelay(normalizedDelay);
+  };
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -204,6 +236,62 @@ function App() {
             No coupons clipped yet.
           </p>
         )}
+      </section>
+
+      <section className="mb-5 w-full max-w-sm rounded-lg border border-slate-500/20 bg-slate-500/5 p-4 text-left shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold leading-tight">Clip Rate</h2>
+            <p className="mt-1 text-xs opacity-70">Delay between coupons</p>
+          </div>
+          {clipRateLimitIsDefault && (
+            <span className="rounded-md bg-slate-500/10 px-2 py-1 text-xs font-semibold">
+              Default
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center gap-3">
+          <input
+            aria-label="Delay between coupon clips"
+            className="min-w-0 flex-1"
+            type="range"
+            min={MIN_CLIP_RATE_LIMIT_DELAY_MS}
+            max={MAX_CLIP_RATE_LIMIT_DELAY_MS}
+            step={CLIP_RATE_LIMIT_DELAY_STEP_MS}
+            value={clipRateLimitDelay}
+            onChange={(event) =>
+              updateClipRateLimitDelay(Number(event.target.value))
+            }
+          />
+          <label className="flex shrink-0 items-center gap-2 text-sm">
+            <input
+              className="w-20 rounded-md border border-slate-500/30 bg-transparent px-2 py-1 text-right"
+              type="number"
+              min={MIN_CLIP_RATE_LIMIT_DELAY_MS}
+              max={MAX_CLIP_RATE_LIMIT_DELAY_MS}
+              step={CLIP_RATE_LIMIT_DELAY_STEP_MS}
+              value={clipRateLimitDelay}
+              onChange={(event) =>
+                updateClipRateLimitDelay(Number(event.target.value))
+              }
+            />
+            ms
+          </label>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs opacity-75">
+          <span>{MIN_CLIP_RATE_LIMIT_DELAY_MS} ms</span>
+          <span>{MAX_CLIP_RATE_LIMIT_DELAY_MS} ms</span>
+        </div>
+
+        <button
+          className="mt-4 w-full"
+          disabled={clipRateLimitIsDefault}
+          onClick={() => resetClipRateLimitDelay()}
+        >
+          Reset to Default
+        </button>
       </section>
 
       <div className="mt-1">
