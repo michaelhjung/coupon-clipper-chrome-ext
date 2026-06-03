@@ -1,4 +1,5 @@
 import { clickLoadMoreButtons, clickRaleysLoadMore } from "./load";
+import { COUPON_CLIP_TALLY_KEY, getStoreNameFromUrl } from "./tally";
 import {
   DEFAULT_CLIENT_ID,
   DEFAULT_CLIENT_SECRET,
@@ -29,21 +30,49 @@ export const clipAllHandler = async (
   }
 
   const isRaleys = tab.url.includes("raleys.com");
+  const storeName = getStoreNameFromUrl(tab.url);
 
   const couponsLoaded = await executeScriptInActiveTab(
     isRaleys ? clickRaleysLoadMore : clickLoadMoreButtons
   );
-  if (!couponsLoaded) return setClipping(false);
+  if (couponsLoaded === false) return setClipping(false);
 
   await executeScriptInActiveTab(
-    isRaleys ? clipRaleysCoupons : clipCouponsUsingAPI
+    isRaleys ? clipRaleysCoupons : clipCouponsUsingAPI,
+    storeName ? [storeName, COUPON_CLIP_TALLY_KEY] : []
   );
 
   setClipping(false);
 };
 
-const clipRaleysCoupons = async () => {
+const clipRaleysCoupons = async (
+  storeName = "Unknown Store",
+  couponClipTallyKey = "couponClipTally"
+) => {
   let stopClipping = false;
+
+  const incrementCouponClipTally = async () => {
+    await new Promise<void>((resolve) => {
+      chrome.storage.local.get(couponClipTallyKey, (result) => {
+        const currentTally = result[couponClipTallyKey];
+        const tally =
+          currentTally && typeof currentTally === "object"
+            ? currentTally
+            : {};
+        const currentStoreCount = Number(tally[storeName]) || 0;
+
+        chrome.storage.local.set(
+          {
+            [couponClipTallyKey]: {
+              ...tally,
+              [storeName]: currentStoreCount + 1,
+            },
+          },
+          resolve
+        );
+      });
+    });
+  };
 
   // Build loader (reuse same loader as API)
   const buildStyle = () => {
@@ -145,7 +174,7 @@ const clipRaleysCoupons = async () => {
   if (!total) {
     loader.remove();
     alert("No coupons found to clip on Raley's.");
-    return;
+    return 0;
   }
 
   let clipped = 0;
@@ -154,6 +183,7 @@ const clipRaleysCoupons = async () => {
 
     btn.click();
     clipped++;
+    await incrementCouponClipTally();
 
     if (clippedCountElement) {
       clippedCountElement.innerText = `Coupons clipped: ${clipped} / ${total}`;
@@ -168,9 +198,13 @@ const clipRaleysCoupons = async () => {
 
   loader.remove();
   alert(`${clipped} coupons clipped successfully on Raley's!`);
+  return clipped;
 };
 
-const clipCouponsUsingAPI = async () => {
+const clipCouponsUsingAPI = async (
+  storeName = "Unknown Store",
+  couponClipTallyKey = "couponClipTally"
+) => {
   const dataElement = document.getElementById("coupon-clipper-data");
   if (!dataElement) throw new Error("There was a problem clipping the coupons");
 
@@ -186,6 +220,29 @@ const clipCouponsUsingAPI = async () => {
   console.info("[ coupon clipper ] debug info:", debugInfo);
 
   let stopClipping = false;
+
+  const incrementCouponClipTally = async () => {
+    await new Promise<void>((resolve) => {
+      chrome.storage.local.get(couponClipTallyKey, (result) => {
+        const currentTally = result[couponClipTallyKey];
+        const tally =
+          currentTally && typeof currentTally === "object"
+            ? currentTally
+            : {};
+        const currentStoreCount = Number(tally[storeName]) || 0;
+
+        chrome.storage.local.set(
+          {
+            [couponClipTallyKey]: {
+              ...tally,
+              [storeName]: currentStoreCount + 1,
+            },
+          },
+          resolve
+        );
+      });
+    });
+  };
 
   const buildStyle = () => {
     const style = document.createElement("style");
@@ -378,7 +435,7 @@ const clipCouponsUsingAPI = async () => {
       couponData
     );
     handleNoCouponsFound();
-    return;
+    return 0;
   }
 
   const storeId = dataElement.getAttribute("data-store-id") || "";
@@ -451,6 +508,7 @@ const clipCouponsUsingAPI = async () => {
 
         if (result?.items?.[0]?.status === 1) {
           clipped++;
+          await incrementCouponClipTally();
 
           if (clippedCountElement) {
             clippedCountElement.innerHTML = `Coupons clipped: ${clipped} / ${couponData.length}`;
@@ -502,18 +560,26 @@ const clipCouponsUsingAPI = async () => {
     progressBar
   );
 
-  setTimeout(() => {
-    removeLoader();
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      removeLoader();
 
-    alert(`${clipped} coupons clipped successfully!`);
+      alert(`${clipped} coupons clipped successfully!`);
 
-    if (localStorage.getItem("abJ4uCoupons")) {
-      localStorage.removeItem("abJ4uCoupons");
-      console.info("[ coupon clipper ] Cleared localStorage key: abJ4uCoupons");
-    } else {
-      console.info(
-        "[ coupon clipper ] No localStorage key 'abJ4uCoupons' found to clear."
-      );
-    }
-  }, 1000);
+      if (localStorage.getItem("abJ4uCoupons")) {
+        localStorage.removeItem("abJ4uCoupons");
+        console.info(
+          "[ coupon clipper ] Cleared localStorage key: abJ4uCoupons"
+        );
+      } else {
+        console.info(
+          "[ coupon clipper ] No localStorage key 'abJ4uCoupons' found to clear."
+        );
+      }
+
+      resolve(null);
+    }, 1000);
+  });
+
+  return clipped;
 };

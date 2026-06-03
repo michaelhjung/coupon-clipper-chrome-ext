@@ -8,6 +8,11 @@ import { CHROME_EXT_URL, STORES, VERSION } from "./constants";
 import { clipAllHandler } from "./coupons/clip";
 import { countAllHandler } from "./coupons/count";
 import { loadAllHandler } from "./coupons/load";
+import {
+  COUPON_CLIP_TALLY_KEY,
+  CouponClipTally,
+  getCouponClipTally,
+} from "./coupons/tally";
 
 type MessageType = {
   type: "CLIP_COUPONS_DONE" | "COUNT_COUPONS_DONE";
@@ -20,6 +25,7 @@ function App() {
   const [clipping, setClipping] = useState(false);
   const [counting, setCounting] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [couponClipTally, setCouponClipTally] = useState<CouponClipTally>({});
 
   useEffect(() => {
     // load any previously selected store
@@ -28,6 +34,7 @@ function App() {
       chromeLocalStorage.get(["selectedStore"], (result) => {
         if (result.selectedStore) setSelectedStore(result.selectedStore);
       });
+      getCouponClipTally().then(setCouponClipTally);
     }
 
     const handleMessage = (message: MessageType) => {
@@ -52,10 +59,33 @@ function App() {
 
     chrome.runtime.onMessage.addListener(handleMessage);
 
+    const handleStorageChange = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string
+    ) => {
+      if (areaName !== "local") return;
+      if (!changes[COUPON_CLIP_TALLY_KEY]) return;
+
+      setCouponClipTally(changes[COUPON_CLIP_TALLY_KEY].newValue || {});
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
     return () => {
       chrome.runtime.onMessage.removeListener(handleMessage);
+      chrome.storage.onChanged.removeListener(handleStorageChange);
     };
   }, []);
+
+  const couponClipTallyEntries = STORES.map((store) => ({
+    storeName: store.name,
+    count: couponClipTally[store.name] || 0,
+  })).filter(({ count }) => count > 0);
+
+  const totalCouponsClipped = couponClipTallyEntries.reduce(
+    (total, { count }) => total + count,
+    0
+  );
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -144,7 +174,39 @@ function App() {
         </div>
       </div>
 
-      <div>
+      <section className="my-5 w-full max-w-sm rounded-lg border border-slate-500/20 bg-slate-500/5 p-4 text-left shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold leading-tight">
+              Coupons Clipped
+            </h2>
+            <p className="mt-1 text-xs opacity-70">Lifetime total by store</p>
+          </div>
+          <strong className="rounded-md bg-emerald-500/15 px-3 py-1 text-lg leading-none text-emerald-500">
+            {totalCouponsClipped}
+          </strong>
+        </div>
+
+        {couponClipTallyEntries.length ? (
+          <ul className="mt-4 divide-y divide-slate-500/20">
+            {couponClipTallyEntries.map(({ storeName, count }) => (
+              <li
+                key={storeName}
+                className="flex items-center justify-between gap-4 py-2 text-sm"
+              >
+                <span>{storeName}</span>
+                <span className="font-semibold">{count}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 rounded-md border border-dashed border-slate-500/25 px-3 py-4 text-center text-sm opacity-75">
+            No coupons clipped yet.
+          </p>
+        )}
+      </section>
+
+      <div className="mt-1">
         <button onClick={() => setShowInstructions(!showInstructions)}>
           {showInstructions ? "Hide Instructions" : "Show Instructions"}
         </button>

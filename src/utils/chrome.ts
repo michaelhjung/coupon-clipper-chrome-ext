@@ -1,6 +1,9 @@
 import { STORES } from "../constants";
 
-export const executeScriptInActiveTab = async (func: () => void) => {
+export const executeScriptInActiveTab = async (
+  func: (...args: string[]) => unknown,
+  args: string[] = []
+) => {
   try {
     const [tab] = await chrome.tabs.query({
       active: true,
@@ -16,12 +19,13 @@ export const executeScriptInActiveTab = async (func: () => void) => {
       return false;
     }
 
-    await chrome.scripting.executeScript({
+    const [result] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func,
+      args,
     });
 
-    return true;
+    return result?.result ?? true;
   } catch (error) {
     console.error(
       "[ coupon clipper ] 💥 Failed to execute script in active tab:",
