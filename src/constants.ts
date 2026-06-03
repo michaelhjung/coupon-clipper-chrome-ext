@@ -99,3 +99,18 @@ export const STORES = [
     couponPath: CouponPagePath.LOYALTY,
   },
 ];
+
+export const getStoreFromUrl = (url: string) => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+
+    return STORES.find((store) => {
+      const storeHostname = store.url.toLowerCase();
+      return (
+        hostname === storeHostname || hostname.endsWith(`.${storeHostname}`)
+      );
+    });
+  } catch {
+    return undefined;
+  }
+};

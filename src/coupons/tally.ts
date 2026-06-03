@@ -1,12 +1,11 @@
-import { STORES } from "../constants";
+import { getStoreFromUrl } from "../constants";
 
 export type CouponClipTally = Record<string, number>;
 
 export const COUPON_CLIP_TALLY_KEY = "couponClipTally";
 
 export const getStoreNameFromUrl = (url: string) => {
-  const normalizedUrl = url.toLowerCase();
-  return STORES.find((store) => normalizedUrl.includes(store.url))?.name;
+  return getStoreFromUrl(url)?.name;
 };
 
 export const incrementCouponClipTally = async (
@@ -32,4 +31,8 @@ export const getCouponClipTally = async (): Promise<CouponClipTally> => {
   if (!tally || typeof tally !== "object" || Array.isArray(tally)) return {};
 
   return tally as CouponClipTally;
+};
+
+export const resetCouponClipTally = async () => {
+  await chrome.storage.local.set({ [COUPON_CLIP_TALLY_KEY]: {} });
 };

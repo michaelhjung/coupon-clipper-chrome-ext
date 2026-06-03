@@ -1,4 +1,4 @@
-import { STORES } from "../constants";
+import { getStoreFromUrl, STORES } from "../constants";
 
 export const executeScriptInActiveTab = async (
   func: (...args: string[]) => unknown,
@@ -36,6 +36,5 @@ export const executeScriptInActiveTab = async (
 };
 
 const isAllowedDomain = (url: string) => {
-  const allowedDomains = STORES.map((store) => store.url);
-  return allowedDomains.some((domain) => url.toLowerCase().includes(domain));
+  return Boolean(getStoreFromUrl(url));
 };

@@ -19,34 +19,35 @@ export const clipAllHandler = async (
 ) => {
   setClipping(true);
 
-  const [tab] = await new Promise<chrome.tabs.Tab[]>((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      resolve(tabs);
+  try {
+    const [tab] = await new Promise<chrome.tabs.Tab[]>((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        resolve(tabs);
+      });
     });
-  });
 
-  if (!tab?.url) {
+    if (!tab?.url) {
+      return alert("Cannot determine the active tab URL");
+    }
+
+    const isRaleys = tab.url.includes("raleys.com");
+    const storeName = getStoreNameFromUrl(tab.url);
+    const clipRateLimitDelay = await getClipRateLimitDelay();
+
+    const couponsLoaded = await executeScriptInActiveTab(
+      isRaleys ? clickRaleysLoadMore : clickLoadMoreButtons
+    );
+    if (couponsLoaded === false) return;
+
+    await executeScriptInActiveTab(
+      isRaleys ? clipRaleysCoupons : clipCouponsUsingAPI,
+      storeName
+        ? [storeName, COUPON_CLIP_TALLY_KEY, String(clipRateLimitDelay)]
+        : []
+    );
+  } finally {
     setClipping(false);
-    return alert("Cannot determine the active tab URL");
   }
-
-  const isRaleys = tab.url.includes("raleys.com");
-  const storeName = getStoreNameFromUrl(tab.url);
-  const clipRateLimitDelay = await getClipRateLimitDelay();
-
-  const couponsLoaded = await executeScriptInActiveTab(
-    isRaleys ? clickRaleysLoadMore : clickLoadMoreButtons
-  );
-  if (couponsLoaded === false) return setClipping(false);
-
-  await executeScriptInActiveTab(
-    isRaleys ? clipRaleysCoupons : clipCouponsUsingAPI,
-    storeName
-      ? [storeName, COUPON_CLIP_TALLY_KEY, String(clipRateLimitDelay)]
-      : []
-  );
-
-  setClipping(false);
 };
 
 const clipRaleysCoupons = async (
@@ -57,6 +58,35 @@ const clipRaleysCoupons = async (
   let stopClipping = false;
   const delayBetweenClips = Math.max(0, Number(clipRateLimitDelay) || 0);
   const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  const waitForClipButtonChange = async (button: HTMLButtonElement) => {
+    const initialText =
+      button.querySelector("p")?.innerText.trim().toLowerCase() ||
+      button.innerText.trim().toLowerCase();
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < 1500) {
+      const currentText =
+        button.querySelector("p")?.innerText.trim().toLowerCase() ||
+        button.innerText.trim().toLowerCase();
+      const containerText =
+        button.closest("article, li, div")?.textContent?.toLowerCase() || "";
+
+      if (
+        !button.isConnected ||
+        button.disabled ||
+        currentText !== initialText ||
+        containerText.includes("clipped") ||
+        containerText.includes("activated") ||
+        containerText.includes("added")
+      ) {
+        return true;
+      }
+
+      await wait(100);
+    }
+
+    return false;
+  };
 
   const incrementCouponClipTally = async () => {
     await new Promise<void>((resolve) => {
@@ -188,18 +218,26 @@ const clipRaleysCoupons = async (
   for (const btn of buttons) {
     if (stopClipping) break;
 
-    btn.click();
-    clipped++;
-    await incrementCouponClipTally();
+    try {
+      btn.click();
 
-    if (clippedCountElement) {
-      clippedCountElement.innerText = `Coupons clipped: ${clipped} / ${total}`;
-    }
-    if (progressBar) {
-      progressBar.style.width = `${(clipped / total) * 100}%`;
-    }
+      const clippedSuccessfully = await waitForClipButtonChange(btn);
+      if (clippedSuccessfully) {
+        clipped++;
+        await incrementCouponClipTally();
 
-    await wait(delayBetweenClips);
+        if (clippedCountElement) {
+          clippedCountElement.innerText = `Coupons clipped: ${clipped} / ${total}`;
+        }
+        if (progressBar) {
+          progressBar.style.width = `${(clipped / total) * 100}%`;
+        }
+      } else {
+        console.warn("[ coupon clipper ] Raley's clip click was not confirmed.");
+      }
+    } finally {
+      await wait(delayBetweenClips);
+    }
   }
 
   loader.remove();
@@ -552,12 +590,13 @@ const clipCouponsUsingAPI = async (
           console.warn(`[ coupon clipper ] ❌ Failed to clip: ${coupon.name}`);
         }
 
-        await wait(delayBetweenClips);
       } catch (err) {
         console.error(
           `[ coupon clipper ] 💥 Error clipping coupon: ${coupon.name}`,
           err
         );
+      } finally {
+        await wait(delayBetweenClips);
       }
     }
 

@@ -23,6 +23,7 @@ import {
   COUPON_CLIP_TALLY_KEY,
   CouponClipTally,
   getCouponClipTally,
+  resetCouponClipTally,
 } from "./coupons/tally";
 
 type MessageType = {
@@ -115,6 +116,16 @@ function App() {
     const normalizedDelay = normalizeClipRateLimitDelay(delayMs);
     setClipRateLimitDelayState(normalizedDelay);
     setClipRateLimitDelay(normalizedDelay);
+  };
+
+  const resetTallyCounts = () => {
+    const confirmed = confirm(
+      "Reset all clipped coupon counts? This cannot be undone.",
+    );
+
+    if (!confirmed) return;
+
+    resetCouponClipTally();
   };
 
   return (
@@ -228,17 +239,22 @@ function App() {
 
         <div className="border-t border-slate-500/20 px-4 pb-4 pt-2">
           {couponClipTallyEntries.length ? (
-            <ul className="divide-y divide-slate-500/20">
-              {couponClipTallyEntries.map(({ storeName, count }) => (
-                <li
-                  key={storeName}
-                  className="flex items-center justify-between gap-4 py-2 text-sm"
-                >
-                  <span>{storeName}</span>
-                  <span className="font-semibold">{count}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y divide-slate-500/20">
+                {couponClipTallyEntries.map(({ storeName, count }) => (
+                  <li
+                    key={storeName}
+                    className="flex items-center justify-between gap-4 py-2 text-sm"
+                  >
+                    <span>{storeName}</span>
+                    <span className="font-semibold">{count}</span>
+                  </li>
+                ))}
+              </ul>
+              <button className="mt-3 w-full" onClick={resetTallyCounts}>
+                Reset Counts
+              </button>
+            </>
           ) : (
             <p className="rounded-md border border-dashed border-slate-500/25 px-3 py-4 text-center text-sm opacity-75">
               No coupons clipped yet.
@@ -315,12 +331,43 @@ function App() {
         </summary>
         <ol className="list-decimal space-y-2 border-t border-slate-500/20 px-8 pb-4 pt-3 text-sm">
           <li>
-            Navigate to the coupon page for the store you want. Make sure you're
-            logged in.
+            Navigate to the coupon page of your grocery store. See the "Go To"
+            dropdown for supported websites. Please make sure you're signed in.
           </li>
-          <li>Click "Load All" to load all coupons on the page.</li>
-          <li>Click "Clip All" and wait for the success message.</li>
+          <li>
+            <i>
+              Optional: Click "Count" if you want to see how many coupons are
+              available to clip.
+            </i>
+          </li>
+          <li>
+            <i>
+              Optional: Click "Load All" if you want to pre-load the full coupon
+              list.
+            </i>
+          </li>
+          <li>
+            Click "Clip All" and watch the magic happen. (Feel free to open a
+            second tab while it's clipping, but do not close the grocery store
+            web page until you see the success message.)
+          </li>
         </ol>
+
+        <details className="border-t border-slate-500/20">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold">
+            Advanced
+          </summary>
+          <div className="space-y-2 px-4 pb-4 text-sm opacity-80">
+            <p>
+              Clip Rate controls the delay between coupon clips. Increase it if
+              a store seems slow, unstable, or starts missing clips.
+            </p>
+            <p>
+              Lower values can finish faster, but the default is the safest
+              everyday setting. Use Reset to Default if you are unsure.
+            </p>
+          </div>
+        </details>
       </details>
     </div>
   );
