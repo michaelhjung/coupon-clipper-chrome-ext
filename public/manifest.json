@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Coupon Clipper",
-  "version": "1.5.0",
-  "description": "Conveniently clip digital grocery coupons with one click. Supports Albertsons-owned companies (e.g., Safeway, Vons, Acme and others)",
-  "permissions": ["storage", "scripting", "tabs", "activeTab"],
+  "version": "2.0.0",
+  "description": "Clip every digital grocery coupon with one click. Supports Albertsons-owned stores (Safeway, Vons, Acme and more) and Raley's.",
+  "permissions": [
+    "storage",
+    "notifications"
+  ],
   "host_permissions": [
     "https://*.acmemarkets.com/*",
     "https://*.albertsons.com/*",
@@ -22,29 +25,26 @@
     "https://*.tomthumb.com/*",
     "https://*.vons.com/*"
   ],
-  "web_accessible_resources": [
-    {
-      "resources": ["page-script.js"],
-      "matches": [
-        "https://*.acmemarkets.com/*",
-        "https://*.albertsons.com/*",
-        "https://*.andronicos.com/*",
-        "https://*.balduccis.com/*",
-        "https://*.carrsqc.com/*",
-        "https://*.haggen.com/*",
-        "https://*.jewelosco.com/*",
-        "https://*.kingsfoodmarkets.com/*",
-        "https://*.pavilions.com/*",
-        "https://*.raleys.com/*",
-        "https://*.randalls.com/*",
-        "https://*.safeway.com/*",
-        "https://*.shaws.com/*",
-        "https://*.starmarket.com/*",
-        "https://*.tomthumb.com/*",
-        "https://*.vons.com/*"
-      ]
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon128.png"
     }
-  ],
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -65,21 +65,45 @@
         "https://*.tomthumb.com/*",
         "https://*.vons.com/*"
       ],
-      "js": ["content-script.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle",
       "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://*.raleys.com/*"
+      ],
+      "js": [
+        "raleys-page-script.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
-  "action": {
-    "default_popup": "index.html",
-    "default_icon": {
-      "128": "icons/icon128.png"
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "page-script.js"
+      ],
+      "matches": [
+        "https://*.acmemarkets.com/*",
+        "https://*.albertsons.com/*",
+        "https://*.andronicos.com/*",
+        "https://*.balduccis.com/*",
+        "https://*.carrsqc.com/*",
+        "https://*.haggen.com/*",
+        "https://*.jewelosco.com/*",
+        "https://*.kingsfoodmarkets.com/*",
+        "https://*.pavilions.com/*",
+        "https://*.randalls.com/*",
+        "https://*.safeway.com/*",
+        "https://*.shaws.com/*",
+        "https://*.starmarket.com/*",
+        "https://*.tomthumb.com/*",
+        "https://*.vons.com/*"
+      ]
     }
-  },
-  "icons": {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  }
+  ]
 }

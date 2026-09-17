@@ -22,3 +22,23 @@ https://github.com/user-attachments/assets/3fb500ec-09f0-4925-affc-e5c97e226df7
 Copyright © 2024-2026 Michael Jung. All rights reserved.
 
 </div>
+
+## Features
+
+- One-click **Clip All** on Albertsons-family stores (Safeway, Vons, Acme, Jewel-Osco and more) and Raley's
+- **Auto-clip** (opt-in): clips automatically when you open a store's coupon page while signed in
+- **Adaptive backoff**: slows down when the store pushes back, then speeds up again
+- Running totals: coupons clipped and estimated dollar savings, synced across devices (can be turned off in settings)
+- Progress on the page, in the tab title, on the toolbar badge, and a notification when auto-clip finishes
+
+## Development
+
+```sh
+npm install
+npm run build      # generates public/manifest.json, type-checks, builds dist/
+npm test           # vitest
+npm run lint
+```
+
+Load `dist/` as an unpacked extension at `chrome://extensions`.
+The store list lives in `src/shared/stores.json`; the manifest is generated from it — do not edit `public/manifest.json` by hand.

@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+docs/
+# Private planning docs (not published)
+pro-plans/
+.env

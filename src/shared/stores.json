@@ -1,0 +1,18 @@
+[
+  { "name": "Acme", "url": "acmemarkets.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Albertsons", "url": "albertsons.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Andronico's", "url": "andronicos.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Balducci's", "url": "balduccis.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Carrs", "url": "carrsqc.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Haggen", "url": "haggen.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Jewel-Osco", "url": "jewelosco.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Kings Food Markets", "url": "kingsfoodmarkets.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Pavilions", "url": "pavilions.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Raley's", "url": "raleys.com", "couponPath": "/something-extra/offers-and-savings", "strategy": "raleys-dom" },
+  { "name": "Randalls", "url": "randalls.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Safeway", "url": "safeway.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Shaw's", "url": "shaws.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Star Market", "url": "starmarket.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Tom Thumb", "url": "tomthumb.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "Vons", "url": "vons.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" }
+]
