@@ -77,3 +77,33 @@ export const clickLoadMoreUntilSettled = async (o: LoadMoreOptions): Promise<num
   }
   return clicks;
 };
+
+export interface ScrollOptions {
+  // Whatever the page adds as it renders, e.g. the number of cards.
+  count: () => number;
+  settleMs: number;
+  maxMs: number;
+}
+
+// For pages that hold every offer in memory and only render cards as they
+// scroll into view: keep jumping to the bottom until a scroll adds nothing.
+export const scrollUntilSettled = async (o: ScrollOptions): Promise<number> => {
+  const start = Date.now();
+  let scrolls = 0;
+  let idleScrolls = 0;
+  while (Date.now() - start < o.maxMs) {
+    const before = o.count();
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    scrolls++;
+    const scrolledAt = Date.now();
+    while (Date.now() - scrolledAt < o.settleMs && o.count() <= before) {
+      await sleep(POLL_MS);
+    }
+    if (o.count() > before) {
+      idleScrolls = 0;
+    } else if (++idleScrolls >= IDLE_CLICKS) {
+      return scrolls;
+    }
+  }
+  return scrolls;
+};

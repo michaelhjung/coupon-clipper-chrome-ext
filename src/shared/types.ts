@@ -1,4 +1,4 @@
-export type Strategy = "albertsons-api" | "raleys-dom";
+export type Strategy = "albertsons-api" | "raleys-dom" | "cvs-api";
 
 export interface StoreConfig {
   name: string;

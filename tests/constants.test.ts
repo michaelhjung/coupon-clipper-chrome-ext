@@ -10,10 +10,10 @@ import {
 } from "../src/shared/constants";
 
 describe("constants", () => {
-  it("loads 16 stores with a strategy each", () => {
-    expect(STORES).toHaveLength(16);
+  it("loads 17 stores with a strategy each", () => {
+    expect(STORES).toHaveLength(17);
     expect(
-      STORES.every((s) => s.strategy === "albertsons-api" || s.strategy === "raleys-dom")
+      STORES.every((s) => ["albertsons-api", "raleys-dom", "cvs-api"].includes(s.strategy))
     ).toBe(true);
   });
 
@@ -24,8 +24,10 @@ describe("constants", () => {
     expect(getStoreFromUrl("garbage")).toBeUndefined();
   });
 
-  it("recognises coupon pages for either Albertsons path and for Raley's", () => {
+  it("recognises coupon pages for either Albertsons path, Raley's and CVS", () => {
     expect(isCouponPageUrl("https://www.safeway.com/loyalty/coupons-deals")).toBe(true);
+    expect(isCouponPageUrl("https://www.cvs.com/extracare/home")).toBe(true);
+    expect(isCouponPageUrl("https://www.cvs.com/")).toBe(false);
     expect(isCouponPageUrl("https://www.safeway.com/foru/coupons-deals.html?x=1")).toBe(true);
     expect(isCouponPageUrl("https://www.raleys.com/something-extra/offers-and-savings")).toBe(true);
     expect(isCouponPageUrl("https://www.safeway.com/")).toBe(false);
@@ -41,5 +43,6 @@ describe("constants", () => {
     expect(getCouponPageUrl(safeway)).toBe("https://www.safeway.com/loyalty/coupons-deals");
     expect(getSignInUrl(safeway)).toBe("https://www.safeway.com/account/sign-in");
     expect(getSignInUrl(raleys)).toBe("https://www.raleys.com/something-extra/offers-and-savings");
+    expect(getSignInUrl(getStoreByName("CVS")!)).toBe("https://www.cvs.com/account-login/look-up");
   });
 });

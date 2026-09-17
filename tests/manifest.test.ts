@@ -29,6 +29,10 @@ describe("buildManifest", () => {
     expect(raleys.length).toBeGreaterThan(0);
   });
 
+  it("mentions CVS in the store description", () => {
+    expect(manifest.description).toContain("CVS");
+  });
+
   it("does not request the tabs permission", () => {
     expect(manifest.permissions).not.toContain("tabs");
   });

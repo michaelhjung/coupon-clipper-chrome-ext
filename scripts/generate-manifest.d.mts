@@ -5,6 +5,7 @@ export function buildManifest(
   version: string
 ): {
   version: string;
+  description: string;
   permissions: string[];
   host_permissions: string[];
   content_scripts: { matches: string[]; js: string[]; run_at: string; world: string }[];

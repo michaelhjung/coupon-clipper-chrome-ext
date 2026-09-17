@@ -17,7 +17,7 @@ export function buildManifest(stores, version) {
     name: "Coupon Clipper",
     version,
     description:
-      "Clip every digital grocery coupon with one click. Supports Albertsons-owned stores (Safeway, Vons, Acme and more) and Raley's.",
+      "Clip every digital grocery coupon with one click. Supports Albertsons-owned stores (Safeway, Vons, Acme and more), Raley's and CVS.",
     permissions: ["storage", "notifications"],
     host_permissions: matches,
     background: { service_worker: "background.js", type: "module" },

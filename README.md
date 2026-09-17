@@ -25,7 +25,7 @@ Copyright © 2024-2026 Michael Jung. All rights reserved.
 
 ## Features
 
-- One-click **Clip All** on Albertsons-family stores (Safeway, Vons, Acme, Jewel-Osco and more) and Raley's
+- One-click **Clip All** on Albertsons-family stores (Safeway, Vons, Acme, Jewel-Osco and more), Raley's and CVS ExtraCare
 - **Auto-clip** (opt-in): clips automatically when you open a store's coupon page while signed in
 - **Adaptive backoff**: slows down when the store pushes back, then speeds up again
 - Running totals: coupons clipped and estimated dollar savings, synced across devices (can be turned off in settings)

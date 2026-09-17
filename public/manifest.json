@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Coupon Clipper",
   "version": "2.0.0",
-  "description": "Clip every digital grocery coupon with one click. Supports Albertsons-owned stores (Safeway, Vons, Acme and more) and Raley's.",
+  "description": "Clip every digital grocery coupon with one click. Supports Albertsons-owned stores (Safeway, Vons, Acme and more), Raley's and CVS.",
   "permissions": [
     "storage",
     "notifications"
@@ -13,6 +13,7 @@
     "https://*.andronicos.com/*",
     "https://*.balduccis.com/*",
     "https://*.carrsqc.com/*",
+    "https://*.cvs.com/*",
     "https://*.haggen.com/*",
     "https://*.jewelosco.com/*",
     "https://*.kingsfoodmarkets.com/*",
@@ -53,6 +54,7 @@
         "https://*.andronicos.com/*",
         "https://*.balduccis.com/*",
         "https://*.carrsqc.com/*",
+        "https://*.cvs.com/*",
         "https://*.haggen.com/*",
         "https://*.jewelosco.com/*",
         "https://*.kingsfoodmarkets.com/*",

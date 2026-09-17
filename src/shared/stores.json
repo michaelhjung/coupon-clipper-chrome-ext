@@ -4,6 +4,7 @@
   { "name": "Andronico's", "url": "andronicos.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
   { "name": "Balducci's", "url": "balduccis.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
   { "name": "Carrs", "url": "carrsqc.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
+  { "name": "CVS", "url": "cvs.com", "couponPath": "/extracare/home", "strategy": "cvs-api", "signInPath": "/account-login/look-up" },
   { "name": "Haggen", "url": "haggen.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
   { "name": "Jewel-Osco", "url": "jewelosco.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
   { "name": "Kings Food Markets", "url": "kingsfoodmarkets.com", "couponPath": "/loyalty/coupons-deals", "altCouponPaths": ["/foru/coupons-deals.html"], "strategy": "albertsons-api", "signInPath": "/account/sign-in" },
