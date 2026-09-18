@@ -63,6 +63,7 @@ export interface Stats {
 }
 
 export interface ActiveRun {
+  store: string;
   kind: RunKind;
   phase: RunPhase;
   clipped: number;
@@ -83,6 +84,7 @@ export interface State {
 }
 
 export type ContentToWorker =
+  | { type: "CONTENT_READY" }
   | { type: "SIGNED_OUT"; store: string; trigger: Trigger }
   | { type: "STARTED"; store: string; trigger: Trigger; kind: RunKind }
   | {

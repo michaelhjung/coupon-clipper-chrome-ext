@@ -2,7 +2,9 @@ import { createClippedMarker } from "../content/clippedMarker";
 import { clickLoadMoreUntilSettled, elementText, waitFor } from "../content/loadMore";
 import { raleysBridge } from "../content/raleysBridge";
 import { pgmBreakdown } from "../shared/format";
+import { isSuccess, readJson, readText } from "../shared/http";
 import { errorMessage, log } from "../shared/log";
+import { asString, firstLine } from "../shared/text";
 import { parseCouponValueCents } from "../shared/value-parse";
 
 import type { StoreAdapter } from "./types";
@@ -91,9 +93,6 @@ export interface RaleysOffersPage {
   total: number; // offers in the whole gallery
 }
 
-const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-const firstLine = (v: unknown) => str(v).split("\n")[0].replace(/\s+/g, " ").trim();
-
 // Manufacturer coupons restate one headline in the other ("Save $3 on ONE
 // Tide…" / "ONE Tide…"); keep the fuller one. Store offers split price and
 // product across the two, so join them.
@@ -112,13 +111,13 @@ export const parseRaleysOffersPage = (json: unknown): RaleysOffersPage | null =>
   const unclipped: Coupon[] = [];
   for (const offer of body.data as RaleysOffer[]) {
     if (!offer || typeof offer !== "object" || offer.IsAccepted === true) continue;
-    const id = str(offer.ExtPromotionId);
+    const id = asString(offer.ExtPromotionId);
     if (!id) continue;
     // Manufacturer coupons carry legal text after a line break.
     const headline = firstLine(offer.Headline);
     const sub = firstLine(offer.SubHeadline);
     const name = joinHeadlines(headline, sub) || "Unnamed coupon";
-    const pgm = str(offer.ExtBadgeTypeCode);
+    const pgm = asString(offer.ExtBadgeTypeCode);
     const dollarsOff =
       offer.RewardType === "DollarOff" && offer.DiscountAmountType === "Dollar" &&
       typeof offer.DiscountAmount === "number" && offer.DiscountAmount > 0
@@ -132,6 +131,29 @@ export const parseRaleysOffersPage = (json: unknown): RaleysOffersPage | null =>
     });
   }
   return { unclipped, count: body.data.length, total: body.total };
+};
+
+// Offsets of the pages still to fetch after the first one. An empty first
+// page means the gallery is empty (or the server is confused); either way
+// there is nothing more to page through.
+export const remainingOffsets = (firstPageCount: number, total: number): number[] => {
+  if (firstPageCount === 0) return [];
+  const offsets: number[] = [];
+  for (let o = firstPageCount; o < total && offsets.length < MAX_OFFER_PAGES; o += OFFERS_PAGE_SIZE) {
+    offsets.push(o);
+  }
+  return offsets;
+};
+
+const uniqueById = (coupons: Coupon[]): Coupon[] => {
+  const seen = new Set<string>();
+  const unique: Coupon[] = [];
+  for (const coupon of coupons) {
+    if (seen.has(coupon.id)) continue;
+    seen.add(coupon.id);
+    unique.push(coupon);
+  }
+  return unique;
 };
 
 export interface RaleysDeps {
@@ -175,7 +197,7 @@ export const createRaleysAdapter = (
   const fetchOffersPage = async (offset: number): Promise<RaleysOffersPage> => {
     const response = await api(`/api/offers/get-offers?type=&offset=${offset}&rows=${OFFERS_PAGE_SIZE}`);
     if (response.status !== 200) throw new Error(`HTTP ${response.status} at offset ${offset}`);
-    const json = await response.json().catch(() => null);
+    const json = await readJson(response);
     const page = parseRaleysOffersPage(json);
     if (!page) throw new Error(`unexpected body at offset ${offset}, keys=${JSON.stringify(Object.keys(json ?? {}))}`);
     return page;
@@ -188,16 +210,15 @@ export const createRaleysAdapter = (
     let pages: RaleysOffersPage[];
     try {
       const first = await fetchOffersPage(0);
-      const offsets: number[] = [];
-      for (let o = first.count; o < first.total && offsets.length < MAX_OFFER_PAGES; o += OFFERS_PAGE_SIZE) {
-        offsets.push(o);
-      }
+      const offsets = remainingOffsets(first.count, first.total);
       pages = [first, ...(await Promise.all(offsets.map(fetchOffersPage)))];
     } catch (err) {
       log.warn(`offers api: ${errorMessage(err)} (${Date.now() - started}ms)`);
       return null;
     }
-    const unclipped = pages.flatMap((p) => p.unclipped);
+    // The gallery can shift between page requests, so the same offer may show
+    // up twice; clipping it twice is harmless but would be counted twice.
+    const unclipped = uniqueById(pages.flatMap((p) => p.unclipped));
     log.info(
       `offers api: ${pages[0].total} offers, ${unclipped.length} unclipped ${pgmBreakdown(unclipped)} ` +
         `in ${pages.length} page(s), ${Date.now() - started}ms`
@@ -221,7 +242,7 @@ export const createRaleysAdapter = (
       return "failed";
     }
     if (response.status === 429) return "rate_limited";
-    const text = await response.text().catch(() => "");
+    const text = await readText(response);
     if (response.status === 200 && text.trim() === "true") return "ok";
     if (response.status === 400 && EXPIRED_MESSAGE.test(text)) {
       // The gallery lists coupons the provider has already pulled; the
@@ -255,12 +276,46 @@ export const createRaleysAdapter = (
   };
   const marker = createClippedMarker(renderClipped);
 
+  // The MAIN-world bridge reports the server's answer to the click, which is
+  // the only way to tell an accepted clip from a rejected one.
+  const clipByClickWithBridge = async (coupon: Coupon, button: HTMLButtonElement): Promise<ClipResult> => {
+    const response = deps.bridge.nextClipResponse({
+      requestTimeoutMs: REQUEST_TIMEOUT_MS,
+      responseTimeoutMs: RESPONSE_TIMEOUT_MS,
+    });
+    const before = elementText(button);
+    button.click();
+    const result = await response;
+    if (result === null) {
+      log.warn(
+        `clip request did not complete for ${coupon.id} ` +
+          `(button "${before}" → "${elementText(button)}", connected=${button.isConnected})`
+      );
+      return "failed";
+    }
+    if (isSuccess(result.status)) return "ok";
+    if (result.status === 429) return "rate_limited";
+    log.warn(`clip request returned HTTP ${result.status} for ${coupon.id}: ${result.body}`);
+    return "failed";
+  };
+
+  const clipByClickWatchingButton = async (button: HTMLButtonElement): Promise<ClipResult> => {
+    const initial = elementText(button);
+    button.click();
+    const changed = () =>
+      !button.isConnected ||
+      button.disabled ||
+      elementText(button) !== initial ||
+      /clipped|activated|added/i.test(button.closest("article, li, div")?.textContent ?? "");
+    return (await waitFor(changed, { timeoutMs: CONFIRM_TIMEOUT_MS, pollMs: 100 })) ? "ok" : "failed";
+  };
+
   return {
     store,
     isSignedIn: async () => {
       try {
         const response = await api("/api/auth/session");
-        const json = (await response.json().catch(() => null)) as { user?: unknown } | null;
+        const json = (await readJson(response)) as { user?: unknown } | null;
         return Boolean(json?.user);
       } catch {
         /* fall back to reading the page */
@@ -298,40 +353,15 @@ export const createRaleysAdapter = (
         log.warn(`no clip button on the page for ${coupon.id}`);
         return "failed";
       }
-      if (deps.bridge.isReady()) {
-        const response = deps.bridge.nextClipResponse({
-          requestTimeoutMs: REQUEST_TIMEOUT_MS,
-          responseTimeoutMs: RESPONSE_TIMEOUT_MS,
-        });
-        const before = elementText(button);
-        button.click();
-        const result = await response;
-        if (result === null) {
-          log.warn(
-            `clip request did not complete for ${coupon.id} ` +
-              `(button "${before}" → "${elementText(button)}", connected=${button.isConnected})`
-          );
-          return "failed";
-        }
-        if (result.status >= 200 && result.status < 300) return "ok";
-        if (result.status === 429) return "rate_limited";
-        log.warn(`clip request returned HTTP ${result.status} for ${coupon.id}: ${result.body}`);
-        return "failed";
-      }
+      if (deps.bridge.isReady()) return clipByClickWithBridge(coupon, button);
+
       // Without the bridge, fall back to watching the button. This cannot
       // tell a rejected clip from an accepted one.
       if (!warnedNoBridge) {
         warnedNoBridge = true;
         log.warn("raleys bridge not ready; confirming clips from the button state only");
       }
-      const initial = elementText(button);
-      button.click();
-      const changed = () =>
-        !button.isConnected ||
-        button.disabled ||
-        elementText(button) !== initial ||
-        /clipped|activated|added/i.test(button.closest("article, li, div")?.textContent ?? "");
-      return (await waitFor(changed, { timeoutMs: CONFIRM_TIMEOUT_MS, pollMs: 100 })) ? "ok" : "failed";
+      return clipByClickWatchingButton(button);
     },
     markClipped: (coupon) => {
       if (coupon.pgm) marker.mark(coupon.id); // otherwise the site updated its own button

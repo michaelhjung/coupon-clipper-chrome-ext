@@ -7,6 +7,8 @@ import {
   onFailed,
   onOk,
   onRateLimited,
+  RATE_LIMIT_MIN_MS,
+  retryDelayMs,
 } from "../src/shared/backoff";
 
 const okTimes = (s: ReturnType<typeof createBackoff>, n: number) => {
@@ -48,6 +50,12 @@ describe("backoff", () => {
     s = onFailed(s);
     s = onOk(s);
     expect(s.delayMs).toBe(1000);
+  });
+
+  it("waits at least the rate-limit minimum before a retry, even with adaptive off", () => {
+    expect(retryDelayMs(onRateLimited(createBackoff(0, false)))).toBe(RATE_LIMIT_MIN_MS);
+    expect(retryDelayMs(onRateLimited(createBackoff(2000, false)))).toBe(2000);
+    expect(retryDelayMs(onRateLimited(createBackoff(250, true)))).toBe(500);
   });
 
   it("never changes when adaptive is off", () => {

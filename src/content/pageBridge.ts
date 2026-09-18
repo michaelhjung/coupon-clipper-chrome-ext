@@ -1,5 +1,6 @@
 import { waitFor } from "./loadMore";
 import { log } from "../shared/log";
+import { asString } from "../shared/text";
 
 export interface AlbertsonsSession {
   storeId: string;
@@ -11,8 +12,6 @@ export interface AlbertsonsSession {
 
 let session: AlbertsonsSession | null = null;
 
-const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
-
 // Injects page-script.js into the MAIN world and keeps whatever it posts back
 // in memory. Nothing is written to the DOM.
 export const initPageBridge = () => {
@@ -20,11 +19,11 @@ export const initPageBridge = () => {
     if (event.source !== window || event.data?.source !== "coupon-clipper") return;
     const p = event.data.payload ?? {};
     session = {
-      storeId: str(p.storeId),
-      clientId: str(p.clientId),
-      clientSecret: str(p.clientSecret),
-      correlationId: str(p.correlationId),
-      token: p.token ? String(p.token) : null,
+      storeId: asString(p.storeId),
+      clientId: asString(p.clientId),
+      clientSecret: asString(p.clientSecret),
+      correlationId: asString(p.correlationId),
+      token: asString(p.token) || null,
     };
     log.info(
       `page bridge: session received (storeId=${session.storeId || "none"}, ` +

@@ -1,7 +1,14 @@
 import { sleep } from "./loadMore";
 import { createBusyOverlay, createOverlay, showSignInBanner } from "./overlay";
 import { restoreTitle, restoreTitleWhenVisible, setTitlePrefix } from "./tabTitle";
-import { createBackoff, MAX_ATTEMPTS, onFailed, onOk, onRateLimited } from "../shared/backoff";
+import {
+  createBackoff,
+  MAX_ATTEMPTS,
+  onFailed,
+  onOk,
+  onRateLimited,
+  retryDelayMs,
+} from "../shared/backoff";
 import { finishedTitle } from "../shared/format";
 import { errorMessage, log } from "../shared/log";
 import { sendToWorker } from "../shared/messages";
@@ -157,7 +164,8 @@ export const runClip = async (
         log.warn(`rate limited on "${coupon.name}" (attempt ${attempt})`);
         backoff = onRateLimited(backoff);
         progress(); // the popup shows the current delay
-        await deps.sleep(backoff.delayMs);
+        if (run.stopRequested) break; // give up on this coupon; the outer loop reports the stop
+        await deps.sleep(retryDelayMs(backoff));
       }
       const detail = `"${coupon.name}" id=${coupon.id} pgm=${coupon.pgm ?? "?"} in ${Date.now() - started}ms`;
       if (result === "ok") {
@@ -204,7 +212,10 @@ const runTask = async (
   deps: EngineDeps,
   work: () => Promise<void>
 ) => {
-  if (current) return;
+  if (current) {
+    log.warn(`${kind} skipped: a run is already in progress`);
+    return;
+  }
   current = { stopRequested: false };
   const busy = deps.createBusyOverlay(text);
   deps.send({ type: "STARTED", store: adapter.store.name, trigger: "manual", kind });

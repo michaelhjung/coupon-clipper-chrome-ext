@@ -43,6 +43,17 @@ const INITIAL_GRACE_MS = 2000;
 // Any new card bumps the DOM node count regardless of markup.
 const domSize = () => document.body.getElementsByTagName("*").length;
 
+// Polls `measure` until it exceeds `before` or `settleMs` passes; true when
+// the page grew. Waiting on growth rather than a fixed delay keeps a slow
+// server from ending a run early.
+const waitForGrowth = async (measure: () => number, before: number, settleMs: number): Promise<boolean> => {
+  const started = Date.now();
+  while (Date.now() - started < settleMs && measure() <= before) {
+    await sleep(POLL_MS);
+  }
+  return measure() > before;
+};
+
 // Clicks "load more" until the button stays gone for `settleMs` or clicks
 // stop adding content. After each click we wait for the page to grow rather
 // than a fixed delay, so a slow server does not end the run early.
@@ -59,11 +70,7 @@ export const clickLoadMoreUntilSettled = async (o: LoadMoreOptions): Promise<num
       clicks++;
       lastSeen = Date.now();
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-      const clickedAt = Date.now();
-      while (Date.now() - clickedAt < o.settleMs && domSize() <= before) {
-        await sleep(POLL_MS);
-      }
-      if (domSize() > before) {
+      if (await waitForGrowth(domSize, before, o.settleMs)) {
         idleClicks = 0;
       } else if (++idleClicks >= IDLE_CLICKS) {
         return clicks;
@@ -95,11 +102,7 @@ export const scrollUntilSettled = async (o: ScrollOptions): Promise<number> => {
     const before = o.count();
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     scrolls++;
-    const scrolledAt = Date.now();
-    while (Date.now() - scrolledAt < o.settleMs && o.count() <= before) {
-      await sleep(POLL_MS);
-    }
-    if (o.count() > before) {
+    if (await waitForGrowth(o.count, before, o.settleMs)) {
       idleScrolls = 0;
     } else if (++idleScrolls >= IDLE_CLICKS) {
       return scrolls;

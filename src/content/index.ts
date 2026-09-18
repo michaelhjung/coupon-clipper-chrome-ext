@@ -16,7 +16,21 @@ const main = () => {
   log.info(`content script ready on ${store.name} (${store.strategy}) at ${location.pathname}`);
   adapter.init?.();
 
+  void sendToWorker({ type: "CONTENT_READY" });
+
+  // Replies { ok: false } instead of starting a second task while one runs,
+  // so the popup can drop its spinner right away.
   chrome.runtime.onMessage.addListener((msg: WorkerToContent, _sender, sendResponse) => {
+    if (msg.type === "STOP") {
+      requestStop();
+      sendResponse({ ok: true });
+      return false;
+    }
+    if (isRunning()) {
+      log.warn(`${msg.type} ignored: a run is already in progress`);
+      sendResponse({ ok: false });
+      return false;
+    }
     switch (msg.type) {
       case "CLIP_ALL":
         void getSettings().then((settings) => runClip(adapter, msg.trigger, settings));
@@ -26,9 +40,6 @@ const main = () => {
         break;
       case "LOAD_ALL":
         void runLoadAll(adapter);
-        break;
-      case "STOP":
-        requestStop();
         break;
     }
     sendResponse({ ok: true });

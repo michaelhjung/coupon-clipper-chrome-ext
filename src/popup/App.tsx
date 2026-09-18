@@ -65,7 +65,7 @@ export default function App() {
       </div>
 
       <div className="mt-3 w-full">
-        <ContextPanel info={info} state={state} onStart={setPending} />
+        <ContextPanel info={info} state={state} onPending={setPending} />
       </div>
       <Totals stats={state.stats} settings={state.settings} />
       <LastRun lastRuns={state.lastRuns} />

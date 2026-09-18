@@ -11,6 +11,13 @@ describe("parseCouponValueCents", () => {
     expect(parseCouponValueCents("  Save $3 when you buy 2 ")).toBe(300);
   });
 
+  it("values the saving, not the spend threshold", () => {
+    expect(parseCouponValueCents("Spend $50, get $10 off")).toBe(1000);
+    expect(parseCouponValueCents("Spend $30, save $5")).toBe(500);
+    expect(parseCouponValueCents("$10 off when you spend $50")).toBe(1000);
+    expect(parseCouponValueCents("Buy 2, get $1 back")).toBe(100);
+  });
+
   it("returns null for percent, BOGO, free and unparseable text", () => {
     expect(parseCouponValueCents("20% OFF")).toBeNull();
     expect(parseCouponValueCents("Buy 1 Get 1 Free")).toBeNull();

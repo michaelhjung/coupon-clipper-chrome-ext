@@ -107,6 +107,31 @@ describe("runClip", () => {
     expect(delays).toEqual([250, 500, 500]);
   });
 
+  it("waits at least 500ms before retrying a rate-limited clip when adaptive backoff is off", async () => {
+    const { deps } = fakeDeps();
+    const sleeps: number[] = [];
+    deps.sleep = async (ms) => {
+      sleeps.push(ms);
+    };
+    const adapter = fakeAdapter([c("1")], ["rate_limited", "ok"]);
+    const settings = { ...DEFAULT_SETTINGS, clipDelayMs: 0, adaptiveBackoff: false };
+    await runClip(adapter, "manual", settings, deps);
+    expect(sleeps[0]).toBe(500); // retry wait
+    expect(sleeps[1]).toBe(0); // the configured delay between coupons
+  });
+
+  it("stops retrying a rate-limited coupon once a stop is requested", async () => {
+    const { deps } = fakeDeps();
+    const adapter = fakeAdapter([c("1"), c("2")], ["rate_limited", "rate_limited", "rate_limited"]);
+    (adapter.clip as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      requestStop();
+      return "rate_limited";
+    });
+    const summary = await runClip(adapter, "manual", DEFAULT_SETTINGS, deps);
+    expect(adapter.clip).toHaveBeenCalledTimes(1);
+    expect(summary).toMatchObject({ clipped: 0, failed: 1, total: 2, status: "stopped" });
+  });
+
   it("counts expired coupons apart from failures and does not record them as clipped", async () => {
     const { deps, sent, overlay } = fakeDeps();
     const adapter = fakeAdapter([c("1"), c("2"), c("3"), c("4")], ["ok", "expired", "failed", "expired"]);

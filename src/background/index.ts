@@ -1,10 +1,9 @@
-import { AUTO_CLIP_COOLDOWN_MS } from "../shared/constants";
+import { claimAutoClip, releaseAutoClip } from "./autoClip";
 import { summaryMessage } from "../shared/format";
 import { appendLog, errorMessage, getLogs, log } from "../shared/log";
 import { broadcast, sendToTab } from "../shared/messages";
 import {
   ensureMigrated,
-  getCooldowns,
   getLastCounts,
   getLastRuns,
   getSettings,
@@ -17,7 +16,13 @@ import {
   setLastRun,
 } from "../shared/storage";
 
-import type { ActiveRun, ContentToWorker, State, UiToWorker } from "../shared/types";
+import type {
+  ActiveRun,
+  ContentToWorker,
+  State,
+  UiToWorker,
+  WorkerToContent,
+} from "../shared/types";
 
 type SessionMaps = {
   activeRuns: Record<string, ActiveRun>;
@@ -116,29 +121,27 @@ const scheduleSyncMirror = () => {
 
 const handleContent = async (msg: ContentToWorker, tabId: number): Promise<unknown> => {
   switch (msg.type) {
-    case "SHOULD_AUTO_CLIP": {
-      const [settings, cooldowns, activeRuns] = await Promise.all([
-        getSettings(),
-        getCooldowns(),
-        getMap("activeRuns"),
-      ]);
-      const ok =
-        settings.autoClip &&
-        Date.now() - (cooldowns[msg.store] ?? 0) >= AUTO_CLIP_COOLDOWN_MS &&
-        !activeRuns[String(tabId)];
-      return { ok };
-    }
+    case "CONTENT_READY":
+      // A fresh content script means any run this tab was reporting is gone.
+      await patchMap("activeRuns", tabId, null);
+      break;
+    case "SHOULD_AUTO_CLIP":
+      return claimAutoClip(msg.store, () => getMap("activeRuns"));
     case "SIGNED_OUT":
       log.info(`tab ${tabId} signed out of ${msg.store} (${msg.trigger})`);
       await patchMap("signedOutTabs", tabId, msg.store);
       await setBadge(tabId, "!", "#ff4d4f");
-      if (msg.trigger === "auto") await notify(tabId, `Sign in to ${msg.store} to clip coupons`);
+      if (msg.trigger === "auto") {
+        await releaseAutoClip(msg.store);
+        await notify(tabId, `Sign in to ${msg.store} to clip coupons`);
+      }
       break;
     case "STARTED": {
       const { clipDelayMs } = await getSettings();
       await Promise.all([
         patchMap("signedOutTabs", tabId, null),
         patchMap("activeRuns", tabId, {
+          store: msg.store,
           kind: msg.kind,
           phase: "loading",
           clipped: 0,
@@ -165,9 +168,10 @@ const handleContent = async (msg: ContentToWorker, tabId: number): Promise<unkno
       log.info(`run done on tab ${tabId}: ${JSON.stringify(s)}`);
       await patchMap("activeRuns", tabId, null);
       await setLastRun(s.store, { ...s, at: Date.now() });
-      // Whatever was not clipped is still available.
+      // Whatever was not clipped is still available, except offers the store
+      // itself reported as expired: they cannot be clipped by anyone.
       if (s.status !== "error") {
-        await setLastCount(s.store, { count: s.total - s.clipped, at: Date.now() });
+        await setLastCount(s.store, { count: s.total - s.clipped - s.expired, at: Date.now() });
       }
       await setCooldown(s.store, Date.now());
       await setBadge(tabId, String(s.clipped));
@@ -195,6 +199,11 @@ const handleContent = async (msg: ContentToWorker, tabId: number): Promise<unkno
   return undefined;
 };
 
+// The tab answers { ok: false } when it is already busy; no answer means the
+// page has no content script (loaded before the extension was installed).
+const forwardToTab = async (tabId: number, msg: WorkerToContent) =>
+  (await sendToTab<{ ok: boolean }>(tabId, msg)) ?? { ok: false };
+
 const handleUi = async (msg: UiToWorker): Promise<unknown> => {
   switch (msg.type) {
     case "GET_STATE":
@@ -206,17 +215,13 @@ const handleUi = async (msg: UiToWorker): Promise<unknown> => {
     case "GET_LOGS":
       return getLogs();
     case "CLIP_ALL":
-      await sendToTab(msg.tabId, { type: "CLIP_ALL", trigger: "manual" });
-      return { ok: true };
+      return forwardToTab(msg.tabId, { type: "CLIP_ALL", trigger: "manual" });
     case "COUNT":
-      await sendToTab(msg.tabId, { type: "COUNT" });
-      return { ok: true };
+      return forwardToTab(msg.tabId, { type: "COUNT" });
     case "LOAD_ALL":
-      await sendToTab(msg.tabId, { type: "LOAD_ALL" });
-      return { ok: true };
+      return forwardToTab(msg.tabId, { type: "LOAD_ALL" });
     case "STOP":
-      await sendToTab(msg.tabId, { type: "STOP" });
-      return { ok: true };
+      return forwardToTab(msg.tabId, { type: "STOP" });
   }
 };
 
@@ -233,12 +238,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true; // async response
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-  void ensureMigrated().then(pullStatsFromSync);
-});
-chrome.runtime.onStartup.addListener(() => {
-  void ensureMigrated().then(pullStatsFromSync);
-});
+const restoreStats = () => void ensureMigrated().then(pullStatsFromSync);
+chrome.runtime.onInstalled.addListener(restoreStats);
+chrome.runtime.onStartup.addListener(restoreStats);
 
 // Let content scripts write to session storage (log buffer).
 void chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" });

@@ -87,6 +87,22 @@ describe("accessors", () => {
   });
 });
 
+describe("concurrent writes", () => {
+  beforeEach(() => resetChromeMock());
+
+  it("does not lose clips reported by two runs at the same time", async () => {
+    await Promise.all([
+      recordClip("Safeway", 100),
+      recordClip("Raley's", 200),
+      recordClip("Safeway", 300),
+    ]);
+    expect(await getStats()).toEqual({
+      clipsByStore: { Safeway: 2, "Raley's": 1 },
+      savingsByStore: { Safeway: 400, "Raley's": 200 },
+    });
+  });
+});
+
 describe("sync across devices", () => {
   beforeEach(() => resetChromeMock());
 

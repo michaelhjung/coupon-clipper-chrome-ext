@@ -2,6 +2,7 @@ import { createClippedMarker } from "../content/clippedMarker";
 import { clickLoadMoreUntilSettled, elementText, normalizeText } from "../content/loadMore";
 import { getSession, initPageBridge, waitForSession } from "../content/pageBridge";
 import { pgmBreakdown } from "../shared/format";
+import { readJson } from "../shared/http";
 import { log } from "../shared/log";
 import { parseCouponValueCents } from "../shared/value-parse";
 
@@ -16,6 +17,7 @@ const FALLBACK_CLIENT_SECRET = "N4tK3pW7pP6nB4kL6vN4kW0rS5lE4qH2fY0aB2rK1eP5gK4y
 const FALLBACK_STORE_ID = "908";
 const PGM_CANDIDATES = ["MF", "SC", "CC", "PD", "manufacturerCoupons"];
 const CLIP_TEXTS = new Set(["clip coupon", "activate"]);
+const API_TIMEOUT_MS = 15_000;
 
 export const parseAlbertsonsCoupons = (root: ParentNode): Coupon[] => {
   const coupons: Coupon[] = [];
@@ -81,17 +83,18 @@ export const parseAlbertsonsOffers = (json: unknown): Coupon[] | null => {
 // the user can watch the clips land top to bottom; offers the page has not
 // rendered yet keep their API order at the end. One DOM query, no requests.
 export const orderByPage = (coupons: Coupon[], root: ParentNode = document): Coupon[] => {
-  const position = new Map<string, number>();
-  root.querySelectorAll<HTMLButtonElement>('button[id^="couponAddBtn"]').forEach((b, i) => {
-    const id = b.id.slice("couponAddBtn".length);
-    if (!position.has(id)) position.set(id, i);
-  });
-  if (position.size === 0) return coupons;
-  const rank = (c: Coupon) => position.get(c.id) ?? Number.MAX_SAFE_INTEGER;
-  return coupons
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => rank(a.c) - rank(b.c) || a.i - b.i)
-    .map(({ c }) => c);
+  const buttons = root.querySelectorAll<HTMLButtonElement>('button[id^="couponAddBtn"]');
+  if (buttons.length === 0) return coupons;
+  const byId = new Map(coupons.map((c) => [c.id, c]));
+  const ordered: Coupon[] = [];
+  for (const button of buttons) {
+    const coupon = byId.get(button.id.slice("couponAddBtn".length));
+    if (!coupon) continue;
+    ordered.push(coupon);
+    byId.delete(coupon.id);
+  }
+  for (const coupon of coupons) if (byId.has(coupon.id)) ordered.push(coupon);
+  return ordered;
 };
 
 export interface AlbertsonsDeps {
@@ -131,13 +134,14 @@ export const createAlbertsonsAdapter = (
         method: "GET",
         credentials: "include",
         headers: apiHeaders(session),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
       });
       const ms = Date.now() - started;
       if (response.status !== 200) {
         log.warn(`offers api: HTTP ${response.status} in ${ms}ms (storeId=${storeId})`);
         return null;
       }
-      const json = await response.json().catch(() => null);
+      const json = await readJson(response);
       const coupons = parseAlbertsonsOffers(json);
       if (!coupons) {
         log.warn(`offers api: unexpected body in ${ms}ms, keys=${JSON.stringify(Object.keys(json ?? {}))}`);
@@ -175,22 +179,30 @@ export const createAlbertsonsAdapter = (
   };
   const marker = createClippedMarker(renderClipped);
 
+  // "next" means the server rejected this program code; try another one.
   const clipOnce = async (coupon: Coupon, pgm: string): Promise<ClipResult | "next"> => {
     const session = getSession();
     const storeId = session?.storeId || FALLBACK_STORE_ID;
     const url = `${location.origin}/abs/pub/web/j4u/api/offers/clip?storeId=${storeId}`;
-    const response = await deps.fetch(url, {
-      method: "POST",
-      headers: apiHeaders(session),
-      body: JSON.stringify({
-        items: [
-          { clipType: "C", itemId: coupon.id, itemType: pgm },
-          { clipType: "L", itemId: coupon.id, itemType: pgm },
-        ],
-      }),
-    });
+    let response: Response;
+    try {
+      response = await deps.fetch(url, {
+        method: "POST",
+        headers: apiHeaders(session),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+        body: JSON.stringify({
+          items: [
+            { clipType: "C", itemId: coupon.id, itemType: pgm },
+            { clipType: "L", itemId: coupon.id, itemType: pgm },
+          ],
+        }),
+      });
+    } catch (err) {
+      log.warn(`clip api: no response for ${coupon.id} (${pgm}):`, err);
+      return "failed";
+    }
     if (response.status === 429) return "rate_limited";
-    const json = await response.json().catch(() => null);
+    const json = (await readJson(response)) as { items?: { status?: unknown }[] } | null;
     return json?.items?.[0]?.status === 1 ? "ok" : "next";
   };
 

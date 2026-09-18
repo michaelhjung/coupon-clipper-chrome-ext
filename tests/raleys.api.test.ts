@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { flush, jsonResponse, render } from "./helpers";
-import { createRaleysAdapter, parseRaleysOffersPage } from "../src/adapters/raleys";
+import { createRaleysAdapter, parseRaleysOffersPage, remainingOffsets } from "../src/adapters/raleys";
 import { getStoreByName } from "../src/shared/constants";
 
 import type { RaleysDeps } from "../src/adapters/raleys";
@@ -27,6 +27,22 @@ const page = (data: unknown[], total: number, offset = 0) => ({ data, offset, li
 const deps = (fetch: RaleysDeps["fetch"], bridgeReady = false): RaleysDeps => ({
   fetch,
   bridge: { isReady: () => bridgeReady, nextClipResponse: vi.fn(async () => null) },
+});
+
+describe("remainingOffsets", () => {
+  it("steps through the gallery from the end of the first page", () => {
+    expect(remainingOffsets(30, 65)).toEqual([30, 60]);
+    expect(remainingOffsets(30, 30)).toEqual([]);
+    expect(remainingOffsets(5, 5)).toEqual([]);
+  });
+
+  it("does not re-request the first page when it came back empty", () => {
+    expect(remainingOffsets(0, 90)).toEqual([]);
+  });
+
+  it("caps the number of pages", () => {
+    expect(remainingOffsets(30, 1_000_000)).toHaveLength(100);
+  });
 });
 
 describe("parseRaleysOffersPage", () => {
@@ -160,6 +176,18 @@ describe("createRaleysAdapter with the offers API", () => {
       throw new DOMException("aborted", "AbortError");
     }));
     expect(await alwaysDown.clip({ id: "1", name: "x", valueCents: null, pgm: "mfg" })).toBe("failed");
+  });
+
+  it("lists every offer once even when the gallery shifts between page requests", async () => {
+    // Offer "30" appears at the end of page 1 and again at the start of page 2.
+    const fetch = vi.fn<RaleysDeps["fetch"]>(async (url) => {
+      const offset = Number(new URL(String(url), "https://www.raleys.com").searchParams.get("offset"));
+      const ids = offset === 0 ? Array.from({ length: 30 }, (_, i) => String(i + 1)) : ["30", "31"];
+      return jsonResponse(200, page(ids.map((id) => offer({ ExtPromotionId: id })), 32, offset));
+    });
+    const coupons = await createRaleysAdapter(raleys, deps(fetch)).fetchUnclipped!();
+    expect(coupons!.map((c) => c.id).filter((id) => id === "30")).toHaveLength(1);
+    expect(coupons).toHaveLength(31);
   });
 
   it("resolves null when the API is unavailable so the page scan can take over", async () => {

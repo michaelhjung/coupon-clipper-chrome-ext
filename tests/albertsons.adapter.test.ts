@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albertsonsSession, flush, jsonResponse, render } from "./helpers";
 import {
   createAlbertsonsAdapter,
+  orderByPage,
   parseAlbertsonsCoupons,
   parseAlbertsonsOffers,
 } from "../src/adapters/albertsons";
@@ -36,10 +37,36 @@ describe("parseAlbertsonsCoupons", () => {
   });
 });
 
+describe("orderByPage", () => {
+  const coupon = (id: string) => ({ id, name: id, valueCents: null });
+
+  it("follows the order of the cards on the page and appends unrendered offers in API order", () => {
+    render(fixture); // buttons for 12345, 22222, 33333 in that order
+    const ordered = orderByPage([coupon("99"), coupon("33333"), coupon("12345"), coupon("7")]);
+    expect(ordered.map((c) => c.id)).toEqual(["12345", "33333", "99", "7"]);
+  });
+
+  it("keeps API order when no cards are rendered", () => {
+    render("<div></div>");
+    const coupons = [coupon("2"), coupon("1")];
+    expect(orderByPage(coupons)).toBe(coupons);
+  });
+});
+
 describe("createAlbertsonsAdapter.clip", () => {
   beforeEach(() => {
     render(fixture);
     setSessionForTests(albertsonsSession("908"));
+  });
+
+  it("reports failed instead of throwing when the request never completes", async () => {
+    const fetch = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const adapter = createAlbertsonsAdapter(safeway, { fetch });
+    const [coupon] = parseAlbertsonsCoupons(document);
+    expect(await adapter.clip(coupon)).toBe("failed");
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it("returns ok on status 1", async () => {

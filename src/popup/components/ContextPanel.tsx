@@ -12,13 +12,13 @@ import type { ActiveTabInfo } from "../useActiveTab";
 interface Props {
   info: ActiveTabInfo;
   state: State;
-  onStart: (task: PendingTask) => void;
+  onPending: (task: PendingTask | null) => void;
 }
 
 const openInWindow = (url: string, tab: chrome.tabs.Tab | null) =>
   chrome.tabs.create({ url, windowId: tab?.windowId });
 
-export const ContextPanel = ({ info, state, onStart }: Props) => {
+export const ContextPanel = ({ info, state, onPending }: Props) => {
   const { tab, store, onCouponPage } = info;
   const tabId = tab?.id;
   const key = tabId !== undefined ? String(tabId) : "";
@@ -28,10 +28,11 @@ export const ContextPanel = ({ info, state, onStart }: Props) => {
   const loadResult = key ? state.loadResults[key] : undefined;
   const [selected, setSelected] = useState(state.settings.lastStore ?? "");
 
-  const start = (kind: RunKind, type: "LOAD_ALL" | "COUNT" | "CLIP_ALL") => {
+  const start = async (kind: RunKind, type: "LOAD_ALL" | "COUNT" | "CLIP_ALL") => {
     if (tabId === undefined) return;
-    onStart({ kind, at: Date.now() });
-    void sendToWorker({ type, tabId });
+    onPending({ kind, at: Date.now() });
+    const reply = await sendToWorker<{ ok: boolean }>({ type, tabId });
+    if (!reply?.ok) onPending(null); // the tab is busy or has no content script
   };
 
   if (store && onCouponPage && tabId !== undefined) {
@@ -53,21 +54,21 @@ export const ContextPanel = ({ info, state, onStart }: Props) => {
           <button
             className="min-h-11 px-2 text-sm"
             disabled={running}
-            onClick={() => start("load", "LOAD_ALL")}
+            onClick={() => void start("load", "LOAD_ALL")}
           >
             Load All
           </button>
           <button
             className="min-h-11 px-2 text-sm"
             disabled={running}
-            onClick={() => start("count", "COUNT")}
+            onClick={() => void start("count", "COUNT")}
           >
             Count
           </button>
           <button
             className="primary min-h-11 px-2 text-sm"
             disabled={running}
-            onClick={() => start("clip", "CLIP_ALL")}
+            onClick={() => void start("clip", "CLIP_ALL")}
           >
             Clip All
           </button>

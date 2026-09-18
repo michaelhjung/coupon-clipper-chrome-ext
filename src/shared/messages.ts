@@ -16,10 +16,13 @@ export const broadcast = async (msg: WorkerToUi): Promise<void> => {
   await sendRuntime(msg);
 };
 
-export const sendToTab = async (tabId: number, msg: WorkerToContent): Promise<void> => {
+export const sendToTab = async <T = unknown>(
+  tabId: number,
+  msg: WorkerToContent
+): Promise<T | undefined> => {
   try {
-    await chrome.tabs.sendMessage(tabId, msg);
+    return (await chrome.tabs.sendMessage(tabId, msg)) as T;
   } catch {
-    /* tab has no content script */
+    return undefined; // tab has no content script
   }
 };

@@ -1,3 +1,5 @@
+import { createSerialQueue } from "./serialQueue";
+
 import type { LastCount, LastRun, Settings, Stats } from "./types";
 
 export const MIN_CLIP_DELAY_MS = 0;
@@ -89,6 +91,12 @@ export const mergeStats = (a: Stats, b: Stats): Stats => ({
 
 const local = () => chrome.storage.local;
 
+// chrome.storage has no atomic update, so every read-merge-write below runs
+// through this queue; two runs reporting at once would otherwise overwrite
+// each other's increment. The queue is per JS context, which is enough:
+// the service worker is the only writer of stats and per-store maps.
+const serialized = createSerialQueue();
+
 export const getSettings = async (): Promise<Settings> => {
   const { [KEYS.settings]: s } = await local().get(KEYS.settings);
   const merged = { ...DEFAULT_SETTINGS, ...(isRecord(s) ? s : {}) } as Settings;
@@ -96,12 +104,13 @@ export const getSettings = async (): Promise<Settings> => {
   return merged;
 };
 
-export const setSettings = async (patch: Partial<Settings>): Promise<Settings> => {
-  const next = { ...(await getSettings()), ...patch };
-  next.clipDelayMs = normalizeClipDelay(next.clipDelayMs);
-  await local().set({ [KEYS.settings]: next });
-  return next;
-};
+export const setSettings = (patch: Partial<Settings>): Promise<Settings> =>
+  serialized(async () => {
+    const next = { ...(await getSettings()), ...patch };
+    next.clipDelayMs = normalizeClipDelay(next.clipDelayMs);
+    await local().set({ [KEYS.settings]: next });
+    return next;
+  });
 
 export const getStats = async (): Promise<Stats> => {
   const { [KEYS.stats]: s } = await local().get(KEYS.stats);
@@ -115,14 +124,15 @@ export const resetStats = async () => {
   await chrome.storage.sync.remove(KEYS.stats).catch(() => undefined);
 };
 
-export const recordClip = async (store: string, valueCents: number | null) => {
-  const stats = await getStats();
-  stats.clipsByStore[store] = (stats.clipsByStore[store] ?? 0) + 1;
-  if (valueCents && valueCents > 0) {
-    stats.savingsByStore[store] = (stats.savingsByStore[store] ?? 0) + valueCents;
-  }
-  await setStats(stats);
-};
+export const recordClip = (store: string, valueCents: number | null) =>
+  serialized(async () => {
+    const stats = await getStats();
+    stats.clipsByStore[store] = (stats.clipsByStore[store] ?? 0) + 1;
+    if (valueCents && valueCents > 0) {
+      stats.savingsByStore[store] = (stats.savingsByStore[store] ?? 0) + valueCents;
+    }
+    await setStats(stats);
+  });
 
 // Per-store maps under one local key: read-merge-write one entry.
 const getMap = async <T>(key: string): Promise<Record<string, T>> => {
@@ -130,9 +140,10 @@ const getMap = async <T>(key: string): Promise<Record<string, T>> => {
   return isRecord(m) ? (m as Record<string, T>) : {};
 };
 
-const setMapEntry = async <T>(key: string, store: string, value: T) => {
-  await local().set({ [key]: { ...(await getMap<T>(key)), [store]: value } });
-};
+const setMapEntry = <T>(key: string, store: string, value: T) =>
+  serialized(async () => {
+    await local().set({ [key]: { ...(await getMap<T>(key)), [store]: value } });
+  });
 
 export const getLastRuns = () => getMap<LastRun>(KEYS.lastRuns);
 export const setLastRun = (store: string, run: LastRun) => setMapEntry(KEYS.lastRuns, store, run);
@@ -159,7 +170,7 @@ export const pullStatsFromSync = async () => {
     .catch(() => ({}) as Record<string, unknown>);
   const remote = remoteItems[KEYS.stats];
   if (!isRecord(remote)) return;
-  await setStats(mergeStats(await getStats(), toStats(remote)));
+  await serialized(async () => setStats(mergeStats(await getStats(), toStats(remote))));
 };
 
 export const ensureMigrated = async () => {

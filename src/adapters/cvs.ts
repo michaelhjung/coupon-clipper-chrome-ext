@@ -1,7 +1,9 @@
 import { createClippedMarker } from "../content/clippedMarker";
 import { normalizeText, scrollUntilSettled, waitFor } from "../content/loadMore";
 import { pgmBreakdown } from "../shared/format";
+import { parseJson, readJson, readText } from "../shared/http";
 import { errorMessage, log } from "../shared/log";
+import { asString, firstLine } from "../shared/text";
 import { parseCouponValueCents } from "../shared/value-parse";
 
 import type { StoreAdapter } from "./types";
@@ -61,9 +63,6 @@ const ON_CARD_HTML =
 const CARD_SELECTOR = "[data-testid=coupon]";
 const DETAILS_ID_PREFIX = "moreDetails_";
 
-const str = (v: unknown) => (typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "");
-const firstLine = (v: unknown) => str(v).split("\n")[0].replace(/\s+/g, " ").trim();
-
 // Cards carry both API ids in their details link: moreDetails_<cmpgnId>_<cpnNbr>.
 const cardId = (card: Element): string | null => {
   const id = card.querySelector(`more-details a[id^="${DETAILS_ID_PREFIX}"]`)?.id.slice(DETAILS_ID_PREFIX.length);
@@ -72,6 +71,11 @@ const cardId = (card: Element): string | null => {
 const findCard = (id: string) => document.getElementById(DETAILS_ID_PREFIX + id)?.closest(CARD_SELECTOR) ?? null;
 const sendButton = (card: Element) => card.querySelector<HTMLButtonElement>("send-to-card-action button");
 const isOnCard = (card: Element) => card.querySelector("on-card") !== null;
+
+// The clip endpoint always answers 200 with an array; the first entry's
+// cpnStatusCd says what happened. Undefined when the body is not that shape.
+const clipStatusCode = (body: unknown): unknown =>
+  Array.isArray(body) ? (body[0] as { cpnStatusCd?: unknown } | undefined)?.cpnStatusCd : undefined;
 
 export const parseCvsCards = (root: ParentNode): Coupon[] => {
   const coupons: Coupon[] = [];
@@ -103,9 +107,15 @@ export interface CvsFeed {
   card: string; // cipher the clip endpoint wants as extraCareCard
 }
 
+interface FeedRequest {
+  status: number;
+  feed: CvsFeed | null; // null when the body is not a feed (signed out, feed down)
+  body: unknown;
+}
+
 const offerId = (offer: CvsOffer) => {
-  const cmpgn = str(offer.cmpgnId);
-  const cpn = str(offer.cpnNbr);
+  const cmpgn = asString(offer.cmpgnId);
+  const cpn = asString(offer.cpnNbr);
   return cmpgn && cpn ? `${cmpgn}_${cpn}` : null;
 };
 
@@ -135,7 +145,7 @@ export const parseCvsFeed = (json: unknown): CvsFeed | null => {
       seen.add(id);
       if (onCard.has(id) || offer.cpnSeqNbr !== undefined) continue;
       const name =
-        `${str(offer.mfrOfferValueDsc)} ${str(offer.mfrOfferBrandName)}`.trim() ||
+        `${asString(offer.mfrOfferValueDsc)} ${asString(offer.mfrOfferBrandName)}`.trim() ||
         firstLine(offer.cpnDsc) ||
         "Unnamed coupon";
       unclipped.push({
@@ -146,7 +156,7 @@ export const parseCvsFeed = (json: unknown): CvsFeed | null => {
       });
     }
   }
-  return { unclipped, onCard: onCard.size, card: str(profile.xtraCard?.xtraCardCipherTxt) };
+  return { unclipped, onCard: onCard.size, card: asString(profile.xtraCard?.xtraCardCipherTxt) };
 };
 
 export interface CvsDeps {
@@ -167,22 +177,29 @@ export const createCvsAdapter = (
       ...init,
     });
 
+  // One POST returns the card cipher plus every coupon; the cipher is kept
+  // for the clips that follow.
+  const requestFeed = async (): Promise<FeedRequest> => {
+    const response = await api(FEED_PATH, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": FEED_API_KEY },
+      body: JSON.stringify(FEED_BODY),
+    });
+    const body = await readJson(response);
+    const feed = parseCvsFeed(body);
+    if (feed?.card) card = feed.card;
+    return { status: response.status, feed, body };
+  };
+
   // Resolves null when the session is signed out or the feed is down.
   const fetchFeed = async (): Promise<CvsFeed | null> => {
     const started = Date.now();
     try {
-      const response = await api(FEED_PATH, {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-api-key": FEED_API_KEY },
-        body: JSON.stringify(FEED_BODY),
-      });
-      const json = await response.json().catch(() => null);
-      const feed = parseCvsFeed(json);
+      const { status, feed, body } = await requestFeed();
       if (!feed) {
-        log.warn(`loyalty feed: HTTP ${response.status}, ${JSON.stringify(json ?? "").slice(0, 200)} (${Date.now() - started}ms)`);
+        log.warn(`loyalty feed: HTTP ${status}, ${JSON.stringify(body ?? "").slice(0, 200)} (${Date.now() - started}ms)`);
         return null;
       }
-      if (feed.card) card = feed.card;
       log.info(
         `loyalty feed: ${feed.unclipped.length} unclipped ${pgmBreakdown(feed.unclipped)}, ` +
           `${feed.onCard} on card, ${Date.now() - started}ms`
@@ -209,16 +226,10 @@ export const createCvsAdapter = (
       return "failed";
     }
     if (response.status === 429) return "rate_limited";
-    const text = await response.text().catch(() => "");
-    let result: unknown = null;
-    try {
-      result = JSON.parse(text);
-    } catch {
-      /* not json */
-    }
-    const status = Array.isArray(result) ? (result[0] as { cpnStatusCd?: unknown } | undefined)?.cpnStatusCd : undefined;
-    if (response.status === 200 && status === STATUS_LOADED) return "ok";
-    if (response.status === 200 && status === STATUS_ALREADY_ON_CARD) {
+    const text = await readText(response);
+    const status = response.status === 200 ? clipStatusCode(parseJson(text)) : undefined;
+    if (status === STATUS_LOADED) return "ok";
+    if (status === STATUS_ALREADY_ON_CARD) {
       log.info(`clip api: ${coupon.id} was already on the card`);
       return "ok";
     }
@@ -242,20 +253,12 @@ export const createCvsAdapter = (
     store,
     isSignedIn: async () => {
       try {
-        const response = await api(FEED_PATH, {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-api-key": FEED_API_KEY },
-          body: JSON.stringify(FEED_BODY),
-        });
-        const feed = parseCvsFeed(await response.json().catch(() => null));
-        if (feed) {
-          if (feed.card) card = feed.card;
-          return true;
-        }
+        const { status, feed } = await requestFeed();
+        if (feed) return true;
         // The site only refreshes its access token on page load, so a tab
         // left open 401s here while still showing the user's coupons; the
         // page scan (and the site's own buttons) still work in that case.
-        if (response.status === 401 && pageHasCoupons()) {
+        if (status === 401 && pageHasCoupons()) {
           log.warn("loyalty feed rejected the session token; falling back to the page");
           return true;
         }
