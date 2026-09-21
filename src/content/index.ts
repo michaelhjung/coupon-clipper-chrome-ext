@@ -1,4 +1,4 @@
-import { isRunning, requestStop, runClip, runCount, runLoadAll } from "./engine";
+import { isRunning, reportSignInState, requestStop, runClip, runCount, runLoadAll } from "./engine";
 import { createAdapter } from "../adapters/index";
 import { getStoreFromUrl, isCouponPath } from "../shared/constants";
 import { log } from "../shared/log";
@@ -46,13 +46,14 @@ const main = () => {
     return false;
   });
 
-  // Auto-clip: ask the worker whenever we land on a coupon URL we have not
-  // asked about yet (covers full loads and SPA navigation).
+  // Whenever we land on a coupon URL we have not asked about yet (covers full
+  // loads and SPA navigation): report sign-in state, then ask about auto-clip.
   let askedFor = "";
   const maybeAutoClip = async () => {
     if (location.href === askedFor) return;
     askedFor = location.href;
     if (!isCouponPath(store, location.pathname) || isRunning()) return;
+    void reportSignInState(adapter);
     const reply = await sendToWorker<{ ok: boolean }>({
       type: "SHOULD_AUTO_CLIP",
       store: store.name,

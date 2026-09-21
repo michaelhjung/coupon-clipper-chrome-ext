@@ -136,6 +136,19 @@ const handleContent = async (msg: ContentToWorker, tabId: number): Promise<unkno
         await notify(tabId, `Sign in to ${msg.store} to clip coupons`);
       }
       break;
+    case "SIGN_IN_STATE": {
+      if (msg.signedIn) {
+        // Only retract a "!" we set; leave a clip-count badge alone.
+        if ((await getMap("signedOutTabs"))[tabId]) {
+          await patchMap("signedOutTabs", tabId, null);
+          await setBadge(tabId, "");
+        }
+        break;
+      }
+      await patchMap("signedOutTabs", tabId, msg.store);
+      await setBadge(tabId, "!", "#ff4d4f");
+      break;
+    }
     case "STARTED": {
       const { clipDelayMs } = await getSettings();
       await Promise.all([

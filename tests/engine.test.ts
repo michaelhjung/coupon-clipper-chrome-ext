@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { flush } from "./helpers";
-import { isRunning, requestStop, runClip, runCount, runLoadAll } from "../src/content/engine";
+import {
+  isRunning,
+  reportSignInState,
+  requestStop,
+  runClip,
+  runCount,
+  runLoadAll,
+} from "../src/content/engine";
 import { DEFAULT_SETTINGS } from "../src/shared/storage";
 
 import type { StoreAdapter } from "../src/adapters/types";
@@ -237,6 +244,30 @@ describe("runLoadAll", () => {
     expect(sent.map((m) => m.type)).toEqual(["STARTED", "LOAD_RESULT", "TASK_DONE"]);
     expect(sent[0]).toMatchObject({ type: "STARTED", kind: "load" });
     expect(deps.createBusyOverlay).toHaveBeenCalledWith("Loading all coupons…");
+  });
+
+  it("reports signed out without a task", async () => {
+    const { deps, sent } = fakeDeps();
+    const adapter = fakeAdapter([], [], false);
+    adapter.loadAll = vi.fn(async () => 0);
+    await runLoadAll(adapter, deps);
+    expect(sent.map((m) => m.type)).toEqual(["SIGNED_OUT"]);
+    expect(adapter.loadAll).not.toHaveBeenCalled();
+  });
+});
+
+describe("reportSignInState", () => {
+  it("tells the worker the tab is signed in", async () => {
+    const { deps, sent } = fakeDeps();
+    await reportSignInState(fakeAdapter([], []), deps);
+    expect(sent).toEqual([{ type: "SIGN_IN_STATE", store: "Safeway", signedIn: true }]);
+  });
+
+  it("tells the worker the tab is signed out without a banner", async () => {
+    const { deps, sent } = fakeDeps();
+    await reportSignInState(fakeAdapter([], [], false), deps);
+    expect(sent).toEqual([{ type: "SIGN_IN_STATE", store: "Safeway", signedIn: false }]);
+    expect(deps.showSignInBanner).not.toHaveBeenCalled();
   });
 });
 

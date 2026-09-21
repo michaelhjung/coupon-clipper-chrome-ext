@@ -1,9 +1,8 @@
-import { useState } from "react";
-
-import { getCouponPageUrl, getSignInUrl, getStoreByName, STORES } from "../../shared/constants";
+import { StorePicker } from "./StorePicker";
+import { getCouponPageUrl, getSignInUrl } from "../../shared/constants";
 import { formatRelativeTime } from "../../shared/format";
 import { sendToWorker } from "../../shared/messages";
-import { setSettings } from "../../shared/storage";
+
 
 import type { PendingTask } from "./PopupOverlay";
 import type { RunKind, State } from "../../shared/types";
@@ -26,7 +25,9 @@ export const ContextPanel = ({ info, state, onPending }: Props) => {
   const signedOutStore = key ? state.signedOutTabs[key] : undefined;
   const lastCount = store ? state.lastCounts[store.name] : undefined;
   const loadResult = key ? state.loadResults[key] : undefined;
-  const [selected, setSelected] = useState(state.settings.lastStore ?? "");
+  const picker = (
+    <StorePicker tab={tab} currentStore={store?.name} lastStore={state.settings.lastStore} />
+  );
 
   const start = async (kind: RunKind, type: "LOAD_ALL" | "COUNT" | "CLIP_ALL") => {
     if (tabId === undefined) return;
@@ -80,6 +81,8 @@ export const ContextPanel = ({ info, state, onPending }: Props) => {
           </p>
         )}
         {loadResult !== undefined && <p className="muted mt-2 text-sm">All coupons loaded.</p>}
+        <p className="muted mt-3 text-sm">Go to another store</p>
+        <div className="mt-2">{picker}</div>
       </div>
     );
   }
@@ -96,40 +99,16 @@ export const ContextPanel = ({ info, state, onPending }: Props) => {
         >
           Go to {store.name} coupons
         </button>
+        <p className="muted mt-3 text-sm">Or go to another store</p>
+        <div className="mt-2">{picker}</div>
       </div>
     );
   }
 
   return (
     <div className="card w-full">
-      <p className="muted text-sm">Not on a supported store.</p>
-      <div className="mt-2 flex items-center gap-2">
-        <select
-          className="min-w-0 flex-1 rounded-md border border-slate-500/30 bg-transparent p-2"
-          value={selected}
-          onChange={(e) => {
-            setSelected(e.target.value);
-            void setSettings({ lastStore: e.target.value || null });
-          }}
-        >
-          <option value="">Select a store</option>
-          {STORES.map((s) => (
-            <option key={s.name} value={s.name}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <button
-          className="primary"
-          disabled={!selected}
-          onClick={() => {
-            const s = getStoreByName(selected);
-            if (s) void openInWindow(getCouponPageUrl(s), tab);
-          }}
-        >
-          Go
-        </button>
-      </div>
+      <p className="text-sm">Choose a store</p>
+      <div className="mt-2">{picker}</div>
     </div>
   );
 };

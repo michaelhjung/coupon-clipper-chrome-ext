@@ -86,6 +86,7 @@ export interface State {
 export type ContentToWorker =
   | { type: "CONTENT_READY" }
   | { type: "SIGNED_OUT"; store: string; trigger: Trigger }
+  | { type: "SIGN_IN_STATE"; store: string; signedIn: boolean }
   | { type: "STARTED"; store: string; trigger: Trigger; kind: RunKind }
   | {
       type: "PROGRESS";

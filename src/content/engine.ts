@@ -88,6 +88,14 @@ const ensureSignedIn = async (adapter: StoreAdapter, trigger: Trigger, deps: Eng
   return false;
 };
 
+// Passive check on page load so the popup knows before the first click. On
+// Raley's and CVS the coupon URL is the same signed in or out, so the URL
+// alone says nothing. No banner: that is reserved for an actual run.
+export const reportSignInState = async (adapter: StoreAdapter, deps: EngineDeps = defaultDeps) => {
+  const signedIn = await adapter.isSignedIn();
+  deps.send({ type: "SIGN_IN_STATE", store: adapter.store.name, signedIn });
+};
+
 export const runClip = async (
   adapter: StoreAdapter,
   trigger: Trigger,
@@ -243,6 +251,7 @@ export const runCount = async (adapter: StoreAdapter, deps: EngineDeps = default
 };
 
 export const runLoadAll = async (adapter: StoreAdapter, deps: EngineDeps = defaultDeps) => {
+  if (!(await ensureSignedIn(adapter, "manual", deps))) return;
   await runTask(adapter, "load", "Loading all coupons…", deps, async () => {
     const started = Date.now();
     const clicks = await adapter.loadAll();
